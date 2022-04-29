@@ -147,23 +147,23 @@ class BlackBoardHost(rpyc.Service):
         if name in boards:
             
             # Update valid state before returning
-            if board[name][entry_time] + board[name][valid_sec] >= time.time():
+            if boards[name]["entry_time"] + board[name]["valid_sec"] >= time.time():
 
                 # Update valid state
-                board[name]["is_valid"] = False
+                boards[name]["is_valid"] = False
 
                 # Return the data but with invalid message
-                return (True, board[name]["data"], board[name]["is_valid"], "Successful Read but Data is invalid!")
+                return (True, boards[name]["data"], boards[name]["is_valid"], "Successful Read but Data is invalid!")
 
             # Data still valid
             else:
 
                 # Check for empty data
-                if board[name]["data"] == "":
-                    return (True, board[name]["data"], board[name]["is_valid"], "Successful Read but data is empty!")
+                if boards[name]["data"] == "":
+                    return (True, boards[name]["data"], boards[name]["is_valid"], "Successful Read but data is empty!")
 
                 # Return Read with out problems!
-                return (True, board[name]["data"], board[name]["is_valid"], "Successful Read with valid data!")
+                return (True, boards[name]["data"], boards[name]["is_valid"], "Successful Read with valid data!")
 
         else:
             return (False, 0, False, "Blackboard does not exist!")

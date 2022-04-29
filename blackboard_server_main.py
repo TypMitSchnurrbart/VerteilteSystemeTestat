@@ -147,7 +147,7 @@ class BlackBoardHost(rpyc.Service):
         if name in boards:
             
             # Update valid state before returning
-            if boards[name]["entry_time"] + board[name]["valid_sec"] >= time.time():
+            if boards[name]["entry_time"] + boards[name]["valid_sec"] >= time.time():
 
                 # Update valid state
                 boards[name]["is_valid"] = False

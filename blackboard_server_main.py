@@ -15,7 +15,7 @@ import time
 import json
 
 
-#=====Global = But may want to use JSON instead of global param!==
+#=====Global == But may want to use JSON instead of global param!==
 boards = {}
 
 #=====Server Class====================================
@@ -26,9 +26,7 @@ class BlackBoardHost(rpyc.Service):
         Create a new blackbox by adding it to the JSON Database? Dict in RAM?
 
         TODO
-            - ensure name is unique!
             - Decide storage technology
-            - check if a unique ID is easier?
 
         param - {str} - name - Name of the new blackbox
         param - {float} - valid_sec - Time the Data in the blackbox shall be valid 
@@ -38,9 +36,11 @@ class BlackBoardHost(rpyc.Service):
 
         global boards
 
-        # Check for corret types
-        if type(name) != type("") or (type(valid_sec) != type(0.0) and type(valid_sec) != type(1)):
-            return (False, "Invalid Parameters! Please give name as String and Valid Time in Seconds as Float or Int")
+        # Check for correct types
+        try:
+            valid_sec = float(valid_sec)
+        except ValueError():
+            return (False, "Invalid Parameters! Please give Valid Time in Seconds as Float or Int")
 
         # Check if name already given
         if name not in boards:
@@ -59,10 +59,11 @@ class BlackBoardHost(rpyc.Service):
             boards[name] = new_blackboard
 
         else:
-            return (False, "Board Name already exists")
+            return (False, f"Board Name '{name}' already exists")
 
         # TODO Delete for debug
         self.debug_print()
+
         return (True, f"Successfully created Board {name}!")
 
 
@@ -97,7 +98,7 @@ class BlackBoardHost(rpyc.Service):
         # TODO delte
         self.debug_print()
 
-        return (True, "Blackboard successfull updated!")
+        return (True, "Blackboard successfully updated!")
         
 
     def exposed_clear_blackboard(self, name):
@@ -129,7 +130,7 @@ class BlackBoardHost(rpyc.Service):
         # TODO delte
         self.debug_print()
 
-        return (True, "Blackboard successfull cleared!")
+        return (True, "Blackboard successfully cleared!")
 
 
     def exposed_read_blackboard(self, name):
@@ -138,7 +139,7 @@ class BlackBoardHost(rpyc.Service):
 
         param - {str} - name - Unique name of the board
 
-        return (Successful?,  data, is_valid, Message)
+        return (Successful?, data, is_valid, Message)
         """
 
         global boards
@@ -147,23 +148,23 @@ class BlackBoardHost(rpyc.Service):
         if name in boards:
             
             # Update valid state before returning
-            if board[name][entry_time] + board[name][valid_sec] >= time.time():
+            if boards[name]["entry_time"] + boards[name]["valid_sec"] <= time.time():
 
                 # Update valid state
-                board[name]["is_valid"] = False
+                boards[name]["is_valid"] = False
 
                 # Return the data but with invalid message
-                return (True, board[name]["data"], board[name]["is_valid"], "Successful Read but Data is invalid!")
+                return (True, boards[name]["data"], boards[name]["is_valid"], "Successfully read but Data is invalid!")
 
             # Data still valid
             else:
 
                 # Check for empty data
-                if board[name]["data"] == "":
-                    return (True, board[name]["data"], board[name]["is_valid"], "Successful Read but data is empty!")
+                if boards[name]["data"] == "":
+                    return (True, boards[name]["data"], boards[name]["is_valid"], "Successfully read but data is empty!")
 
                 # Return Read with out problems!
-                return (True, board[name]["data"], board[name]["is_valid"], "Successful Read with valid data!")
+                return (True, boards[name]["data"], boards[name]["is_valid"], "Successfully read with valid data!")
 
         else:
             return (False, 0, False, "Blackboard does not exist!")
@@ -189,8 +190,14 @@ class BlackBoardHost(rpyc.Service):
             else:
                 is_empty = False
 
+            # Update valid state before returning
+            if boards[name]["entry_time"] + boards[name]["valid_sec"] <= time.time():
+
+                # Update valid state
+                boards[name]["is_valid"] = False
+
             # Return with the remaining information
-            return (True, is_empty, boards[name]["entry_time"], boards[name]["is_valid"], "Successful read of board status!")
+            return (True, is_empty, boards[name]["entry_time"], boards[name]["is_valid"], "Successfully read board status!")
 
         else:
             return (False, False, 0, False, "Board does not exist!")
@@ -220,7 +227,7 @@ class BlackBoardHost(rpyc.Service):
         if len(list_of_boards) == 0:
             return (True, list_of_boards, "No Boards found! Please create one first!")
 
-        return (True, list_of_boards, "Successfull read of Blackboard List!")
+        return (True, list_of_boards, "Successful read of Blackboard List!")
 
 
     def exposed_delete_blackboard(self, name):
@@ -240,12 +247,15 @@ class BlackBoardHost(rpyc.Service):
         if name in boards:
             del boards[name]
 
-            return (True, "Board successfully deleted.")
-
         else:
             return (False, "Board does not exist!")
 
+        self.debug_print()
 
+        return (True, "Board successfully deleted.")
+
+
+    @staticmethod
     def exposed_delete_all_blackboards():
         """
         Delete all existing blackboards!
@@ -266,7 +276,9 @@ class BlackBoardHost(rpyc.Service):
         """
         Write the need information to the log file
         """
+        
         pass
+
 
 
     def debug_print(self):
@@ -274,7 +286,9 @@ class BlackBoardHost(rpyc.Service):
         TODO Delete
         """
         global boards
+        print("\033c", end="")
         print(json.dumps(boards, indent=4))
+        print("\n====================================================\n")
 
 #=====Main============================================
 if __name__ == "__main__":

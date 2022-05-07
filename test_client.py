@@ -26,7 +26,7 @@ if __name__ == "__main__":
     try:
         server_handle = rpyc.connect("localhost", 8080).root
     except ConnectionRefusedError:
-        print("[ERROR]\tServer is not avalailable! Please start server first.")
+        print("[ERROR]\tServer is not available! Please start server first.")
         exit()
     
 

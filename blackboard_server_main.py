@@ -298,7 +298,7 @@ class BlackBoardHost(rpyc.Service):
         """
         global boards
         print("\033c", end="")
-        print(json.dumps(boards, indent=4))
+        print(json.dumps(boards, indent=4, ensure_ascii=False))
         print("\n====================================================\n")
 
 #=====Main============================================

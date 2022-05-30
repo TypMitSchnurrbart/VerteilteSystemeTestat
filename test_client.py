@@ -22,7 +22,7 @@ if __name__ == "__main__":
     # Connect to the server
     print("Connecting to Server...")
 
-    # TODO Catch if not working!
+    # Catch if not working!
     try:
         server_handle = rpyc.connect("localhost", 8080).root
     except ConnectionRefusedError:

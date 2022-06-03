@@ -18,25 +18,23 @@ def get_input_name():
 #===== Main ==========================================
 if __name__ == "__main__":
 
+    # TODO Add argparse for port and address!!! so no localhost shit
 
     # Connect to the server
     print("Connecting to Server...")
 
-    # Catch if not working!
+    # Catch if server is already started.
     try:
         server_handle = rpyc.connect("localhost", 8080).root
     except ConnectionRefusedError:
         print("[ERROR]\tServer is not avalailable! Please start server first.")
         exit()
     
-
-
     # Start Message
     print("""Welcome to the Blackboard Client! What do you want to do?\n""")
 
     # Init
     running = True
-
     while running:
 
         # Get Action ID
@@ -147,7 +145,7 @@ if __name__ == "__main__":
             print("Action unknown! Please stick to the given options!")
 
         # Seperate the terminal from action to action
-        time.sleep(1)
+        time.sleep(0.8)
         print("\n====================================================\n")
 
 

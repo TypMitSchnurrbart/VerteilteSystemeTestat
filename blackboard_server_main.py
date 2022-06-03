@@ -260,8 +260,7 @@ class BlackBoardHost(rpyc.Service):
         return (True, "[INFO] Board successfully deleted.")
 
 
-    @staticmethod
-    def exposed_delete_all_blackboards():
+    def exposed_delete_all_blackboards(self):
         """
         Delete all existing blackboards!
 
@@ -274,7 +273,9 @@ class BlackBoardHost(rpyc.Service):
 
         with board_lock:
             boards = {}
-            return (True, "[INFO] Successfully deleted all boards!")
+
+        self.debug_print()
+        return (True, "[INFO] Successfully deleted all boards!")
 
         
     def write_to_log():

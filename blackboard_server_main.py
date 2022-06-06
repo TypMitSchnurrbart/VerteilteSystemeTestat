@@ -39,7 +39,7 @@ class BlackBoardHost(rpyc.Service):
         # Check for correct types
         try:
             valid_sec = float(valid_sec)
-        except ValueError():
+        except ValueError:
             return (False, "Invalid Parameters! Please give Valid Time in Seconds as Float or Int")
 
         # Check if name already given

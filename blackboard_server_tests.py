@@ -23,7 +23,7 @@ class delete_create_test(ServerTests):
     def test_create_delete_blackboard(self):
         code, msg = self.blackboard_host.exposed_create_blackboard("test", 1)
         self.assertEqual(code, True)
-        self.assertEqual(msg, "Successfully created Board test!")
+        self.assertEqual(msg, "[INFO] Successfully created Board test!")
         self.assertIsNotNone(bb.boards["test"])
 
         code, msg = self.blackboard_host.exposed_create_blackboard("", 1)

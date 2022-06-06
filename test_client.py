@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
         # Create a Blackboard
         if action_id == "0":
-            answer = server_handle.create_blackboard(get_input_name(), input("Please insert the Valid Time in Seconds:\t"))
+            answer = server_handle.create_blackboard(get_input_name(), input("Insert the Valid Time in Seconds:\t"))
             print(answer[-1])
         
 

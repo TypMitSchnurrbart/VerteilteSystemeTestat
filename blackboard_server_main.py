@@ -80,9 +80,6 @@ class BlackBoardHost(rpyc.Service):
         """
         Update the data of the blackboard and refresh the timestamp
 
-        TODO
-            - ensure semaphore or what else is free!
-
         param - {str} - name - Name of the EXISTING Blackboard
         param - {str?} - data - Given data written to blackboard
 

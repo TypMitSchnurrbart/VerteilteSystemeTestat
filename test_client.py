@@ -18,7 +18,7 @@ def get_input_name():
 #===== Main ==========================================
 if __name__ == "__main__":
 
-    # TODO Add argparse for port and address!!! so no localhost shit
+    # TODO Add argparse for port and address!!! Please add "localhost" as default
 
     # Connect to the server
     print("Connecting to Server...")
@@ -118,33 +118,36 @@ if __name__ == "__main__":
         # Delete given blackboard
         elif action_id == "6":
 
-            security_question = input("Are you sure? [Y / n] : ")
+            # Get board name and ask for certanity
+            board_name = get_input_name()
+            security_question = input(f"Are you sure you want to delete '{board_name}'?\n[Y / n] : ")
 
             # Check Security Question
             if security_question == "Y":
-                answer = server_handle.delete_blackboard(get_input_name())
+                answer = server_handle.delete_blackboard(board_name)
                 print(answer[-1])
             else:
-                print("Returning...\n")
+                print("[INFO] Returning...\n")
         
 
         # Delete all Blackboards
         elif action_id == "7":
 
-            security_question = input("Are you sure? [Y / n] : ")
+            security_question = input("Are you sure you want to delete ALL blackboards?\n[Y / n] : ")
 
             # Check Security Question
             if security_question == "Y":
                 answer = server_handle.delete_all_blackboards()
                 print(answer[-1])
             else:
-                print("Returning...\n")
-        
+                print("[INFO] Returning...\n")
+
         # Catch wrong input
         else:
             print("Action unknown! Please stick to the given options!")
 
         # Seperate the terminal from action to action
+        # with small delay to make it more understandable for the Human Eye
         time.sleep(0.8)
         print("\n====================================================\n")
 

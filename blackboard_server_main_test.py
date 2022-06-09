@@ -112,6 +112,15 @@ class ServerTest(unittest.TestCase):
     def test_exposed_get_blackboard_status(self):
         testhost = BlackBoardHost()
         testhost.exposed_create_blackboard("TestBoard", 1000)
+        testhost.exposed_create_blackboard("Empty", 0.001)
+
+        time.sleep(0.1)
+        result = testhost.exposed_get_blackboard_status("Empty")
+        # emptyness
+        self.assertTrue(result[1])
+        # invalidity
+        self.assertFalse(result[3])
+        
         testhost.exposed_display_blackboard("TestBoard", "DataString")
 
         result = testhost.exposed_get_blackboard_status("TestBoard")

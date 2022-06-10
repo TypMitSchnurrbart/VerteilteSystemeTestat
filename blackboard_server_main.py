@@ -65,15 +65,15 @@ class BlackBoardHost(rpyc.Service):
         try:
             valid_sec = float(valid_sec)
         except ValueError:
-            return (False, "[ERROR] Invalid Parameters! Please give Valid Time in Seconds as Float or Int")
+            return (False, "[ERROR] Invalid parameters! Please give valid time in seconds as Float or Int!")
 
         # Check if the valid time is bigger than zero!
         if valid_sec <= 0:
-            return (False, f"[ERROR] The valid time must be greater than 0! Given value: {valid_sec}")
+            return (False, f"[ERROR] The valid time must be greater than 0! Given value: {valid_sec}.")
 
         # Check if name already given
         if name in self.__boards:
-            return (False, f"[ERROR] Board Name '{name}' already exists")
+            return (False, f"[ERROR] Board name '{name}' already exists!")
 
         # Lock the dataframe
         with self.__board_lock:
@@ -90,7 +90,7 @@ class BlackBoardHost(rpyc.Service):
             self.__boards[name] = new_blackboard
             self.__save_boards()
 
-        return (True, f"[INFO] Successfully created Board {name}!")
+        return (True, f"[INFO] Successfully created board {name}!")
 
     def exposed_display_blackboard(self, name, data):
         """
@@ -113,7 +113,7 @@ class BlackBoardHost(rpyc.Service):
             self.__boards[name]["is_valid"] = True
             self.__save_boards()
 
-        return (True, "[INFO] Blackboard successfully updated!")
+        return (True, "[INFO] Board successfully updated!")
 
     def exposed_clear_blackboard(self, name):
         """
@@ -133,7 +133,7 @@ class BlackBoardHost(rpyc.Service):
             self.__boards[name]["is_valid"] = False
             self.__save_boards()
 
-        return (True, "[INFO] Blackboard successfully cleared!")
+        return (True, "[INFO] Board successfully cleared!")
 
     def exposed_read_blackboard(self, name):
         """
@@ -156,7 +156,7 @@ class BlackBoardHost(rpyc.Service):
                 self.__save_boards()
                 # Return the data but with invalid message
                 return (True, self.__boards[name]["data"], self.__boards[name]["is_valid"],
-                        "[WARNING] Successfully read but Data is invalid!")
+                        "[WARNING] Successfully read but data is invalid!")
 
             # Data still valid
             else:
@@ -214,9 +214,9 @@ class BlackBoardHost(rpyc.Service):
 
         # Check for empty list to return a different message
         if len(list_of_boards) == 0:
-            return (True, list_of_boards, "[ERROR] No Boards found! Please create one first!")
+            return (True, list_of_boards, "[ERROR] No boards found! Please create one first!")
 
-        return (True, list_of_boards, "[INFO] Successful read of Blackboard List!")
+        return (True, list_of_boards, "[INFO] Successful read of board list!")
 
     def exposed_delete_blackboard(self, name):
         """
@@ -235,7 +235,7 @@ class BlackBoardHost(rpyc.Service):
         with self.__board_lock:
             del self.__boards[name]
             self.__save_boards()
-        return (True, "[INFO] Board successfully deleted.")
+        return (True, "[INFO] Board successfully deleted!")
 
     def exposed_delete_all_blackboards(self):
         """
@@ -265,14 +265,13 @@ class BlackBoardHost(rpyc.Service):
         try:
             with open('boards.json', 'r') as file:
                 BlackBoardHost.__boards = json.load(file)
-                print("[INFO] Successfully read boards")
+                print("[INFO] Successfully read boards.")
         except Exception as e:
-            if e is FileNotFoundError:
-                print("[INFO] Found no board.json file")
+            if isinstance(e, FileNotFoundError):
+                BlackBoardHost.__save_boards()
+                print("[WARNING] Found no existing board.json file. Created a new one.")
             else:
-                print("Hi")
-                print(type(e))
-                print("[ERROR] Error while loading board.json file")
+                print("[ERROR] Error while loading board.json file.")
             BlackBoardHost.__boards = {}
 
     @staticmethod
@@ -283,18 +282,18 @@ class BlackBoardHost(rpyc.Service):
         try:
             with open('boards.json', 'w') as file:
                 json.dump(BlackBoardHost.__boards, file, sort_keys=True, indent=4)
-                print("[INFO] Successfully stored boards")
+                print("[INFO] Successfully stored boards.")
         except:
-            print("[ERROR] Error while saving the boards")
+            print("[ERROR] Error while saving the boards.")
 
         # Debug Print # TODO Remove
         print("\033c", end="")
         print(json.dumps(BlackBoardHost.__boards, indent=4, ensure_ascii=False))
         print("\n====================================================\n")
-        print("[INFO] To stop the Server please use Ctrl+C")
+        print("[INFO] To stop the Server please use Ctrl+C.")
 
 
-# =====Help============================================
+# =====Functions=======================================
 def show_help():
     """
     TODO Docstring
@@ -324,16 +323,16 @@ if __name__ == "__main__":
     for o, a in opts:
         if o in ("-h", "--help"):
             show_help()
-            sys.exit()
+            exit()
         elif o in ("-p", "--port"):
             try:
                 port = int(a)
             except:
-                print("[Error] Invalid Port number")
-                sys.exit()
+                print("[Error] Invalid Port number.")
+                exit()
             if port < 0 or port > 49151:
-                print("[Error] Port number out of range")
-                sys.exit()
+                print("[Error] Port number out of range.")
+                exit()
 
     # Start the server
     print("[INFO] Starting server on port " + str(port) + "...")
@@ -343,7 +342,7 @@ if __name__ == "__main__":
     Logger.write_in_log([datetime.now(), "Server-Start"])
 
     # Start the Server
-    print("[INFO] Server started. To stop please use Ctrl+C")
+    print("[INFO] Server started. To stop please use Ctrl+C.")
     server.start()
 
     Logger.write_in_log([datetime.now(), "Server-Stop"])

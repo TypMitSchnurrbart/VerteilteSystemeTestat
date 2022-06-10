@@ -1,5 +1,5 @@
 """
-    Contains a simple logger_function to log events in a csv file
+    Contains a simple logger function to log events in a csv file
 """
 
 #=====Imports=========================================
@@ -30,7 +30,7 @@ def write_in_log(items):
                 writer.writerow(items)
 
             #write to console
-            print("Log: " + str(items))
+            print("[Log] " + str(items)[1:-1])
         except Exception as e:
             print(e)
             print('Warning! Could not write the log.')

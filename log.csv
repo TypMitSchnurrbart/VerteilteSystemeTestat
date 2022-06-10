@@ -1,0 +1,117 @@
+Timestamp,Event,IP,Port,Method,Arguments,Return
+2022-06-10 18:08:12.801802,Server-Stop
+2022-06-10 18:08:15.129943,Server-Start
+2022-06-10 18:08:23.889959,Client-Connect,127.0.0.1,56013
+2022-06-10 18:08:36.511992,Method-Call,127.0.0.1,56013,exposed_create_blackboard,"('Billy', '90')","(True, '[INFO] Successfully created Board Billy!')"
+2022-06-10 18:10:39.070111,Server-Stop
+2022-06-10 18:11:19.431821,Server-Start
+2022-06-10 18:11:24.070154,Client-Connect,127.0.0.1,56055
+2022-06-10 18:11:32.644834,Method-Call,127.0.0.1,56055,exposed_read_blackboard,"('Billy',)","(True, '', False, '[WARNING] Successfully read but Data is invalid!')"
+2022-06-10 18:11:41.809659,Client-Disconnect,127.0.0.1,56055
+2022-06-10 18:11:42.209853,Server-Stop
+2022-06-10 18:12:57.271507,Server-Start
+2022-06-10 18:13:02.149765,Client-Connect,127.0.0.1,56075
+2022-06-10 18:13:12.864378,Method-Call,127.0.0.1,56075,exposed_create_blackboard,"('Billy', '90')","(True, '[INFO] Successfully created Board Billy!')"
+2022-06-10 18:13:52.973369,Client-Disconnect,127.0.0.1,56075
+2022-06-10 18:13:53.057881,Server-Stop
+2022-06-10 18:14:00.497396,Server-Start
+2022-06-10 18:14:17.338630,Server-Start
+2022-06-10 18:14:29.204617,Server-Start
+2022-06-10 18:14:37.764852,Client-Connect,127.0.0.1,56084
+2022-06-10 18:14:43.568627,Method-Call,127.0.0.1,56084,exposed_create_blackboard,"('Billy', '1')","(True, '[INFO] Successfully created Board Billy!')"
+2022-06-10 18:16:42.179908,Client-Disconnect,127.0.0.1,56084
+2022-06-10 18:16:42.419547,Server-Stop
+2022-06-10 18:16:44.860086,Server-Start
+2022-06-10 18:16:49.454367,Client-Connect,127.0.0.1,56116
+2022-06-10 18:16:51.399193,Client-Connect,127.0.0.1,56117
+2022-06-10 18:16:57.578194,Client-Disconnect,127.0.0.1,56117
+2022-06-10 18:17:04.783595,Client-Disconnect,127.0.0.1,56116
+2022-06-10 18:30:53.728929,Server-Stop
+2022-06-10 18:30:55.965737,Server-Start
+2022-06-10 18:31:01.208444,Client-Connect,127.0.0.1,56211
+2022-06-10 18:31:10.384719,Client-Disconnect,127.0.0.1,56211
+2022-06-10 18:32:57.468037,Client-Connect,127.0.0.1,56232
+2022-06-10 18:33:04.048731,Client-Disconnect,127.0.0.1,56232
+2022-06-10 18:33:24.966697,Client-Connect,127.0.0.1,56233
+2022-06-10 18:33:29.760889,Client-Disconnect,127.0.0.1,56233
+2022-06-10 18:35:24.063722,Client-Connect,127.0.0.1,56251
+2022-06-10 18:35:30.016107,Client-Disconnect,127.0.0.1,56251
+2022-06-10 18:35:39.470783,Client-Connect,127.0.0.1,56252
+2022-06-10 18:35:48.406619,Client-Disconnect,127.0.0.1,56252
+2022-06-10 18:36:12.495282,Client-Connect,127.0.0.1,56262
+2022-06-10 18:36:43.954034,Client-Disconnect,127.0.0.1,56262
+2022-06-10 18:36:46.241360,Client-Connect,127.0.0.1,56269
+2022-06-10 18:37:06.869638,Client-Disconnect,127.0.0.1,56269
+2022-06-10 18:38:54.576040,Client-Connect,127.0.0.1,56285
+2022-06-10 19:13:26.437096,Client-Disconnect,127.0.0.1,56285
+2022-06-10 19:13:57.544266,Server-Start
+2022-06-10 19:14:02.614937,Client-Connect,127.0.0.1,59913
+2022-06-10 19:14:19.663210,Method-Call,127.0.0.1,59913,exposed_create_blackboard,"('B', '1')","(False, ""[ERROR] Board Name 'B' already exists"")"
+2022-06-10 19:15:33.051515,Client-Disconnect,127.0.0.1,59913
+2022-06-10 19:16:19.292902,Server-Start
+2022-06-10 19:16:21.829510,Client-Connect,127.0.0.1,59931
+2022-06-10 19:16:25.551695,Method-Call,127.0.0.1,59931,exposed_create_blackboard,"('Bo', '1')","(True, '[INFO] Successfully created Board Bo!')"
+2022-06-10 19:16:38.284776,Method-Call,127.0.0.1,59931,exposed_create_blackboard,"('B0', '1')","(True, '[INFO] Successfully created Board B0!')"
+2022-06-10 19:16:42.475173,Server-Stop
+2022-06-10 19:16:59.091548,Server-Start
+2022-06-10 19:17:06.265995,Client-Connect,127.0.0.1,59936
+2022-06-10 19:17:13.091473,Method-Call,127.0.0.1,59936,exposed_create_blackboard,"('B1', '80')","(True, '[INFO] Successfully created Board B1!')"
+2022-06-10 19:17:24.886200,Server-Stop
+2022-06-10 19:17:41.041936,Server-Start
+2022-06-10 19:17:44.563162,Client-Connect,127.0.0.1,59943
+2022-06-10 19:17:48.836138,Method-Call,127.0.0.1,59943,exposed_create_blackboard,"('B1', 'B')","(False, '[ERROR] Invalid Parameters! Please give Valid Time in Seconds as Float or Int')"
+2022-06-10 19:17:58.908779,Client-Connect,127.0.0.1,59946
+2022-06-10 19:18:06.624803,Method-Call,127.0.0.1,59946,exposed_read_blackboard,"('B',)","(True, '', False, '[WARNING] Successfully read but Data is invalid!')"
+2022-06-10 19:18:10.208865,Method-Call,127.0.0.1,59946,exposed_list_blackboards,(),"(True, ['1', 'B', 'B0', 'B1', 'Billy', 'Bo'], '[INFO] Successful read of Blackboard List!')"
+2022-06-10 19:19:06.839573,Client-Disconnect,127.0.0.1,59943
+2022-06-10 19:19:06.839573,Server-Stop
+2022-06-10 19:19:21.832428,Server-Start
+2022-06-10 19:19:25.572701,Client-Connect,127.0.0.1,59966
+2022-06-10 19:19:31.020187,Method-Call,127.0.0.1,59966,exposed_create_blackboard,"('B1', '10')","(False, ""[ERROR] Board Name 'B1' already exists"")"
+2022-06-10 19:19:36.450653,Client-Disconnect,127.0.0.1,59966
+2022-06-10 19:19:51.618137,Server-Start
+2022-06-10 19:19:55.702996,Client-Connect,127.0.0.1,59976
+2022-06-10 19:19:58.594659,Client-Disconnect,127.0.0.1,59976
+2022-06-10 19:20:02.818833,Server-Stop
+2022-06-10 19:20:18.689780,Server-Start
+2022-06-10 19:20:20.636615,Client-Connect,127.0.0.1,59983
+2022-06-10 19:20:22.998082,Method-Call,127.0.0.1,59983,exposed_list_blackboards,(),"(True, ['1', 'B', 'B0', 'B1', 'Billy', 'Bo'], '[INFO] Successful read of Blackboard List!')"
+2022-06-10 19:20:27.104052,Client-Disconnect,127.0.0.1,59983
+2022-06-10 19:20:27.204815,Server-Stop
+2022-06-10 19:26:13.739047,Server-Start
+2022-06-10 19:32:57.320679,Server-Start
+2022-06-10 19:33:00.353952,Server-Stop
+2022-06-10 19:33:39.912001,Server-Start
+2022-06-10 19:33:43.449077,Server-Stop
+2022-06-10 19:50:37.811342,Server-Start
+2022-06-10 19:50:41.856458,Server-Stop
+2022-06-10 19:50:44.988132,Server-Start
+2022-06-10 19:50:49.514564,Server-Stop
+2022-06-10 19:50:54.109528,Server-Start
+2022-06-10 19:50:56.135390,Server-Stop
+2022-06-10 19:52:30.397254,Server-Start
+2022-06-10 19:52:33.414752,Server-Stop
+2022-06-10 19:53:03.189214,Server-Start
+2022-06-10 19:54:04.992817,Server-Stop
+2022-06-10 19:54:37.221328,Server-Start
+2022-06-10 19:54:39.253062,Server-Stop
+2022-06-10 19:55:09.615971,Server-Start
+2022-06-10 19:55:11.643129,Server-Stop
+2022-06-10 19:55:15.862315,Server-Start
+2022-06-10 19:55:17.872005,Server-Stop
+2022-06-10 19:59:24.776761,Server-Start
+2022-06-10 19:59:59.163834,Server-Start
+2022-06-10 20:00:02.685989,Server-Stop
+2022-06-10 20:02:20.090577,Server-Start
+2022-06-10 20:02:26.120830,Server-Stop
+2022-06-10 20:04:34.852668,Server-Start
+2022-06-10 20:04:45.976477,Server-Stop
+2022-06-10 20:05:25.984440,Server-Start
+2022-06-10 20:06:22.733372,Server-Start
+2022-06-10 20:06:58.995988,Server-Start
+2022-06-10 20:07:07.575920,Server-Stop
+2022-06-10 20:07:52.596696,Server-Start
+2022-06-10 20:07:58.624874,Server-Stop
+2022-06-10 20:08:13.838265,Server-Start
+2022-06-10 20:08:15.808385,Client-Connect,127.0.0.1,60886
+2022-06-10 20:08:18.820426,Server-Stop

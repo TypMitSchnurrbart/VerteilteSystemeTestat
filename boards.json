@@ -1,0 +1,44 @@
+{
+    "1": {
+        "data": "",
+        "entry_time": 1654878948.406619,
+        "is_valid": true,
+        "name": "1",
+        "valid_sec": 10.0
+    },
+    "B": {
+        "data": "",
+        "entry_time": 1654879140.696246,
+        "is_valid": false,
+        "name": "B",
+        "valid_sec": 1.0
+    },
+    "B0": {
+        "data": "",
+        "entry_time": 1654881398.2847764,
+        "is_valid": true,
+        "name": "B0",
+        "valid_sec": 1.0
+    },
+    "B1": {
+        "data": "",
+        "entry_time": 1654881433.0854611,
+        "is_valid": true,
+        "name": "B1",
+        "valid_sec": 80.0
+    },
+    "Billy": {
+        "data": "",
+        "entry_time": 1654877683.5686274,
+        "is_valid": true,
+        "name": "Billy",
+        "valid_sec": 1.0
+    },
+    "Bo": {
+        "data": "",
+        "entry_time": 1654881385.5516956,
+        "is_valid": true,
+        "name": "Bo",
+        "valid_sec": 1.0
+    }
+}

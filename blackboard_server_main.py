@@ -40,7 +40,7 @@ class BlackBoardHost(rpyc.Service):
 
     def exposed_create_blackboard(self, name, valid_sec):
         """
-        Create a new blackbox by adding it to the JSON Database? Dict in RAM?
+        Create a new blackboard by adding it to the JSON Database? Dict in RAM?
 
         TODO
             - Decide storage technology

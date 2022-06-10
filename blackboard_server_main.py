@@ -8,12 +8,20 @@
 """
 
 #=====Imports=========================================
-import rpyc
-from rpyc.utils.server import ThreadedServer
 
+import sys
+import os
 import time
 import json
 from threading import Lock
+
+# add custom library location to path
+sys.path.append(str(os.path.dirname(os.path.abspath(__file__))) + "/RPyC/rpyc_main_folder")
+
+import rpyc
+from rpyc.utils.server import ThreadedServer
+
+
 
 
 #=====Global == But may want to use JSON instead of global param!==
@@ -24,6 +32,11 @@ board_lock = Lock()
 
 #=====Server Class====================================
 class BlackBoardHost(rpyc.Service):
+
+    def on_connect(self, conn):
+        """called when the connection is established"""
+        print("Client connected!")
+        print(conn._channel.stream.sock.getsockname())
 
     def exposed_create_blackboard(self, name, valid_sec):
         """
@@ -275,11 +288,23 @@ class BlackBoardHost(rpyc.Service):
         return (True, "[INFO] Successfully deleted all boards!")
 
         
-    def write_to_log():
+    def log_call(self, ip, port, method, args):
         """
         Write the need information to the log file
+
+        Does work because of this in line 593 of protocol.py
+        log_call = getattr(obj.__self__, "log_call", None)
+        if callable(log_call):
+            try:
+                log_call(*self._channel.stream.sock.getpeername(), obj.__name__)
+            except:
+                pass
+
         """
-        
+        print("Caller IP: " + str(ip))
+        print("Caller Port: " + str(port))
+        print("Called Method: " + str(method))
+        print("Arguments: " + str(args))
         pass
 
 

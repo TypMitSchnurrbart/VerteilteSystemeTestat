@@ -4,8 +4,14 @@
 """
 
 #===== Imports =======================================
-import rpyc
+import sys
+import os
 import time
+
+# add custom library location to path
+sys.path.append(str(os.path.dirname(os.path.abspath(__file__))) + "/RPyC/rpyc_main_folder")
+
+import rpyc
 
 #==== Functions ======================================
 def get_input_name():

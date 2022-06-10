@@ -589,16 +589,16 @@ class Connection(object):
         return hash(obj)
 
     def _handle_call(self, obj, args, kwargs=()):  # request handler
+        return_value = obj(*args, **dict(kwargs))
+
         # additional behaviour
         log_call = getattr(obj.__self__, "log_call", None)
         if callable(log_call):
             try:
-                log_call(*self._channel.stream.sock.getpeername(), obj.__name__, args)
+                log_call(*self._channel.stream.sock.getpeername(), obj.__name__, args, return_value)
             except:
                 pass
-
-        # default behaviour
-        return obj(*args, **dict(kwargs))
+        return return_value
 
     def _handle_dir(self, obj):  # request handler
         return tuple(dir(obj))

@@ -14,15 +14,14 @@ import os
 import time
 import json
 from threading import Lock
+from datetime import datetime
+import logger as Logger
 
 # add custom library location to path
 sys.path.append(str(os.path.dirname(os.path.abspath(__file__))) + "/RPyC/rpyc_main_folder")
 
 import rpyc
 from rpyc.utils.server import ThreadedServer
-
-
-
 
 #=====Global == But may want to use JSON instead of global param!==
 boards = {}
@@ -32,11 +31,17 @@ board_lock = Lock()
 
 #=====Server Class====================================
 class BlackBoardHost(rpyc.Service):
+    def __init__(self):
+        # dict is needed because you can't get information from a closed socket
+        self.socket_adress_dict = {}
 
     def on_connect(self, conn):
-        """called when the connection is established"""
-        print("Client connected!")
-        print(conn._channel.stream.sock.getsockname())
+        self.socket_adress_dict[conn] = conn._channel.stream.sock.getpeername()
+        Logger.write_in_log([datetime.now(), "Client-Connect", *self.socket_adress_dict[conn]])
+
+    def on_disconnect(self, conn):
+        Logger.write_in_log([datetime.now(), "Client-Disconnect", *self.socket_adress_dict[conn]])
+        self.socket_adress_dict.pop(conn)
 
     def exposed_create_blackboard(self, name, valid_sec):
         """
@@ -141,7 +146,7 @@ class BlackBoardHost(rpyc.Service):
             boards[name]["is_valid"] = False
 
 
-        # TODO delte
+        # TODO delete
         self.debug_print()
 
         return (True, "[INFO] Blackboard successfully cleared!")
@@ -217,7 +222,6 @@ class BlackBoardHost(rpyc.Service):
             return (True, is_empty, boards[name]["entry_time"], boards[name]["is_valid"], "[INFO] Successfully read board status!")
 
 
-
     @staticmethod
     def exposed_list_blackboards():
         """
@@ -287,26 +291,8 @@ class BlackBoardHost(rpyc.Service):
         self.debug_print()
         return (True, "[INFO] Successfully deleted all boards!")
 
-        
-    def log_call(self, ip, port, method, args):
-        """
-        Write the need information to the log file
-
-        Does work because of this in line 593 of protocol.py
-        log_call = getattr(obj.__self__, "log_call", None)
-        if callable(log_call):
-            try:
-                log_call(*self._channel.stream.sock.getpeername(), obj.__name__)
-            except:
-                pass
-
-        """
-        print("Caller IP: " + str(ip))
-        print("Caller Port: " + str(port))
-        print("Called Method: " + str(method))
-        print("Arguments: " + str(args))
-        pass
-
+    def log_call(self, ip, port, method, args, return_value):
+        Logger.write_in_log([datetime.now(), "Method-Call", ip, port, method, str(args), str(return_value)])
 
     def debug_print(self):
         """
@@ -319,14 +305,22 @@ class BlackBoardHost(rpyc.Service):
         print("[INFO] To stop the Server please use Ctrl+C")
 
 
+
 #=====Main============================================
 if __name__ == "__main__":
 
     # Init the server
     # TODO add port to chose maybe via argparse
     print("[INFO] Starting server...")
-    server = ThreadedServer(BlackBoardHost, port = 8080)
+    server = ThreadedServer(BlackBoardHost, port=8080)
+
+    Logger.write_in_log([datetime.now(), "Server-Start"])
 
     # Start the Server
     print("[INFO] Server started. To stop please use Ctrl+C")
     server.start()
+
+    Logger.write_in_log([datetime.now(), "Server-Stop"])
+
+
+

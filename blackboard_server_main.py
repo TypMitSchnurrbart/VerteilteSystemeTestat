@@ -1,307 +1,448 @@
 """
-    Testing the RPyC Module
-    Hosting a Server
-
-    TODO
-
-        - maybe return dict everywhere instead of tuples!
+    RPC-Server:
+    Contains the service class, the main-function of the server and additional functions.
+    To realize the RPC communication a modified version of the RPyC library is used.
 """
 
-#=====Imports=========================================
+# =====Imports=========================================
+import sys
+import time
+import json
+import getopt
+from threading import Lock
+from datetime import datetime
+from typing import Union  # for better type hints
+
+import logger as logger
+
 import rpyc
 from rpyc.utils.server import ThreadedServer
 
-import time
-import json
-from threading import Lock
 
-
-#=====Global == But may want to use JSON instead of global param!==
-boards = {}
-
-# Created lock, perhaps think of another solution than creating as "global" lock
-board_lock = Lock()
-
-#=====Server Class====================================
+# =====Service Class===================================
 class BlackBoardHost(rpyc.Service):
+    # static variables
+    __boards = {}
+    __board_lock = Lock()
 
-    def exposed_create_blackboard(self, name, valid_sec):
+    def __init__(self):
         """
-        Create a new blackboard by adding it to the JSON Database? Dict in RAM?
+        Initializes the BlackBoardHost (service) class.
+        A BlackBoardHost instance is created for each connected client.
+        """
+        # storing the client address is needed because you can't get information from a closed socket
+        self.__client_address = None
 
-        TODO
-            - Decide storage technology
+    def on_connect(self, conn: rpyc.core.protocol.Connection) -> None:
+        """
+        Called when the client connects.
+        Saves the address of the connected client and writes a log entry.
 
-        param - {str} - name - Name of the new blackbox
-        param - {float} - valid_sec - Time the Data in the blackbox shall be valid 
+        param - {rpyc.core.protocol.Connection} - conn - The connection with the client
+        """
+        # Access protected attribute. But can't be done otherwise without modifying the library.
+        self.__client_address = conn._channel.stream.sock.getpeername()
+        logger.write_in_log([datetime.now(), "Client-Connect", *self.__client_address])
+
+    def on_disconnect(self, conn: rpyc.core.protocol.Connection):
+        """
+        Called when the client is disconnected.
+        Writes a log entry.
+
+        param - {rpyc.core.protocol.Connection} - conn - The (former) connection with the client
+        """
+        logger.write_in_log([datetime.now(), "Client-Disconnect", *self.__client_address])
+
+    def exposed_create_blackboard(self, name: str, valid_sec: Union[float, int, str]) -> tuple:
+        """
+        Create a new empty Blackboard.
+
+        param - {str} - name - Name of the new Blackboard
+        param - {float or int or str} - valid_sec - Time the data in the Blackboard shall be valid
 
         return (Successful?, Message)
         """
+        # To be sure the string parameters are a string
+        name = str(name)
 
-        global boards
+        return_value = None
 
-        # Check for correct types
         # Convert valid_sec to float
         try:
             valid_sec = float(valid_sec)
         except ValueError:
-            return (False, "[ERROR] Invalid Parameters! Please give Valid Time in Seconds as Float or Int")
+            return_value = (False, "[ERROR] Invalid parameters! Please give valid time in seconds as Float or Int!")
 
-
-        # Check if the valid time is bigger than zero!
-        if valid_sec <= 0:
-            return (False, f"[ERROR] The valid time must be greater than 0! Given value: {valid_sec}")
+        # Check if the valid time is bigger or equal to than zero!
+        if return_value is None and valid_sec == 0:
+            valid_sec = float("inf")
+        if return_value is None and valid_sec <= 0:
+            return_value = (False, f"[ERROR] The valid time must be greater or equal to 0! Given value: {valid_sec}.")
 
         # Check if name already given
-        if name in boards:
-            return (False, f"[ERROR] Board Name '{name}' already exists")
+        if return_value is None and name in self.__boards:
+            return_value = (False, f"[ERROR] Board name '{name}' already exists!")
 
-        # Lock the dataframe
-        with board_lock:
-            # Init the new blackboard
-            new_blackboard = {
-                "name" : name,
-                "valid_sec" : valid_sec,
-                "entry_time" : time.time(),
-                "is_valid" : True,
-                "data" : ""
-            }
+        if return_value is None:
+            with self.__board_lock:
+                # Init the new Blackboard
+                new_blackboard = {
+                    "name": name,
+                    "valid_sec": valid_sec,
+                    "entry_time": time.time(),
+                    "data": None
+                }
 
-            # Add to boards
-            boards[name] = new_blackboard
-                
-        # TODO Delete for debug
-        self.debug_print()
+                # Add to __boards
+                self.__boards[name] = new_blackboard
+                self.__save_boards()
+            return_value = (True, f"[INFO] Successfully created Board '{name}'!")
 
-        return (True, f"[INFO] Successfully created Board {name}!")
+        # Log and return
+        self.log_call("exposed_create_blackboard", (name, valid_sec), return_value)
+        return return_value
 
-
-    def exposed_display_blackboard(self, name, data):
+    def exposed_display_blackboard(self, name: str, data: str) -> tuple:
         """
-        Update the data of the blackboard and refresh the timestamp
+        Update the data of the Blackboard and refresh the timestamp.
 
-        param - {str} - name - Name of the EXISTING Blackboard
-        param - {str?} - data - Given data written to blackboard
+        param - {str} - name - Name of the existing Blackboard
+        param - {str} - data - Given data written to the Blackboard
 
         return (Successful?, Message)
         """
+        # To be sure the string parameters are a string
+        name = str(name)
+        data = str(data)
 
-        global boards
+        return_value = None
 
-        # Check if the blackboard exists
-        if name not in boards:
-            return (False, "[ERROR] Board does not exist!")
+        # Check if the Blackboard exists
+        if name not in self.__boards:
+            return_value = (False, "[ERROR] Board does not exist!")
 
-        # Lock the dataframe
-        with board_lock:
-            # Update the board information
-            boards[name]["entry_time"] = time.time()
-            boards[name]["data"] = data
-            boards[name]["is_valid"] = True
-            
+        if return_value is None:
+            with self.__board_lock:
+                # Update the Board information
+                self.__boards[name]["entry_time"] = time.time()
+                self.__boards[name]["data"] = data
+                self.__save_boards()
+            return_value = (True, "[INFO] Board successfully updated!")
 
-        # TODO delete
-        self.debug_print()
+        # Log and return
+        self.log_call("exposed_display_blackboard", (name, data), return_value)
+        return return_value
 
-        return (True, "[INFO] Blackboard successfully updated!")
-        
-
-    def exposed_clear_blackboard(self, name):
+    def exposed_clear_blackboard(self, name: str) -> tuple:
         """
-        Clear the given board data and set to invalid status!
+        Clear the given Blackboard data and set to invalid status.
 
-        param - {str} - name - Unique name of the board
+        param - {str} - name - Unique name of the Blackboard
 
         return (Successful?, Message)
         """
+        # To be sure the string parameters are a string
+        name = str(name)
 
-        global boards
+        return_value = None
 
-        # Check if the blackboard exists
-        if name not in boards:
-            return (False, "[ERROR] Board does not exist!")
+        # Check if the Blackboard exists
+        if name not in self.__boards:
+            return_value = (False, "[ERROR] Board does not exist!")
 
-        with board_lock:
+        if return_value is None:
+            with self.__board_lock:
+                # Update the Board information
+                self.__boards[name]["data"] = None
+                self.__save_boards()
+            return_value = (True, "[INFO] Board successfully cleared!")
 
-            # Update the board information
-            boards[name]["data"] = ""
-            boards[name]["is_valid"] = False
+        # Log and return
+        self.log_call("exposed_clear_blackboard", (name,), return_value)
+        return return_value
 
-
-        # TODO delte
-        self.debug_print()
-
-        return (True, "[INFO] Blackboard successfully cleared!")
-
-
-    def exposed_read_blackboard(self, name):
+    def exposed_read_blackboard(self, name: str) -> tuple:
         """
-        Return the data and valid state of the given board
+        Return the data and valid state of the given Blackboard.
 
-        param - {str} - name - Unique name of the board
+        param - {str} - name - Unique name of the Blackboard
 
         return (Successful?, data, is_valid, Message)
         """
+        # To be sure the string parameters are a string
+        name = str(name)
 
-        global boards
+        return_value = None
 
-        # Check if the blackboard exists
-        if name not in boards:
-            return (False, "[ERROR] Board does not exist!")
+        # Check if the Blackboard exists
+        if name not in self.__boards:
+            return_value = (False, "[ERROR] Board does not exist!")
 
-        with board_lock:
-            
-            # Update valid state before returning
-            if boards[name]["entry_time"] + boards[name]["valid_sec"] <= time.time():
+        if return_value is None:
+            with self.__board_lock:
+                # Check valid state
+                is_valid = self.__board_is_valid(name)
 
-                # Update valid state
-                boards[name]["is_valid"] = False
+                # Check for empty data (always valid)
+                if self.__boards[name]["data"] is None:
+                    # Return value with empty data
+                    return_value = (True, "", False,
+                                    "[WARNING] Successfully read but data is empty!")
+                elif not is_valid:
+                    # Return value with invalid data
+                    return_value = (True, self.__boards[name]["data"], is_valid,
+                                    "[WARNING] Successfully read but data is invalid!")
+                else:
+                    # Return value with valid data
+                    return_value = (True, self.__boards[name]["data"], is_valid,
+                                    "[INFO] Successfully read with valid data!")
 
-                # Return the data but with invalid message
-                return (True, boards[name]["data"], boards[name]["is_valid"], "[WARNING] Successfully read but Data is invalid!")
+        # Log and return
+        self.log_call("exposed_read_blackboard", (name,), return_value)
+        return return_value
 
-            # Data still valid
-            else:
-
-                # Check for empty data
-                if boards[name]["data"] == "":
-                    return (True, boards[name]["data"], boards[name]["is_valid"], "[WARNING] Successfully read but data is empty!")
-
-                # Return Read with out problems!
-                return (True, boards[name]["data"], boards[name]["is_valid"], "[INFO] Successfully read with valid data!")
-
-
-    def exposed_get_blackboard_status(self, name):
+    def exposed_get_blackboard_status(self, name: str) -> tuple:
         """
-        Return current state of the given board
+        Return current state of the given Blackboard.
 
-        param - {str} - name - Unique name of the board
+        param - {str} - name - Unique name of the Blackboard
 
-        return (Successful?,  is_empty, entry_time, is_valid, Message)
+        return (Successful?, is_empty, entry_time, is_valid, Message)
         """
+        # To be sure the string parameters are a string
+        name = str(name)
 
-        global boards
+        return_value = None
 
-        # Check if the blackboard exists
-        if name not in boards:
-            return (False, "[ERROR] Board does not exist!")
+        # Check if the Blackboard exists
+        if name not in self.__boards:
+            return_value = (False, "[ERROR] Board does not exist!")
 
-        with board_lock:
-            
-            # Check is the data is empty or not
-            if boards[name]["data"] == "":
-                is_empty = True
-            else:
-                is_empty = False
+        if return_value is None:
+            with self.__board_lock:
+                # Check is the data is empty or not
+                if self.__boards[name]["data"] is None:
+                    is_empty = True
+                else:
+                    is_empty = False
+                # Check valid state
+                is_valid = self.__board_is_valid(name)
+            return_value = (True, is_empty, self.__boards[name]["entry_time"], is_valid and not is_empty,
+                            "[INFO] Successfully read Board status!")
 
-            # Update valid state before returning
-            if boards[name]["entry_time"] + boards[name]["valid_sec"] <= time.time():
+        # Log and return
+        self.log_call("exposed_get_blackboard_status", (name,), return_value)
+        return return_value
 
-                # Update valid state
-                boards[name]["is_valid"] = False
-
-            # Return with the remaining information
-            return (True, is_empty, boards[name]["entry_time"], boards[name]["is_valid"], "[INFO] Successfully read board status!")
-
-
-
-    @staticmethod
-    def exposed_list_blackboards():
+    def exposed_list_blackboards(self) -> tuple:
         """
-        Simply return a complete list of the blackboards
-        
-        param - {str} - name - Unique name of the board
+        Return a complete list of the Blackboards.
 
-        return (Successful?,  list_of_boards, Message)
+        return (Successful?, list_of_boards, Message)
         """
-
-        global boards
-
         # Init the list
         list_of_boards = []
 
-        # get all board names
-        with board_lock:
-            for name in boards:
+        # get all Board names
+        with self.__board_lock:
+            for name in self.__boards:
                 list_of_boards.append(name)
 
         # Check for empty list to return a different message
         if len(list_of_boards) == 0:
-            return (True, list_of_boards, "[ERROR] No Boards found! Please create one first!")
+            return_value = (True, list_of_boards, "[ERROR] No Boards found! Please create one first!")
+        else:
+            return_value = (True, list_of_boards, "[INFO] Successful read of Board list!")
 
-        return (True, list_of_boards, "[INFO] Successful read of Blackboard List!")
+        # Log and return
+        self.log_call("exposed_list_blackboards", (), return_value)
+        return return_value
 
-
-    def exposed_delete_blackboard(self, name):
+    def exposed_delete_blackboard(self, name: str) -> tuple:
         """
-        Delete the given board
+        Delete the given Blackboard.
 
-        param - {str} - name - Unique name of the message
-
-        param - {str} - name - Unique name of the board
+        param - {str} - name - Unique name of the Blackboard
 
         return (Successful?,  Message)
         """
+        # To be sure the string parameters are a string
+        name = str(name)
 
-        global boards
+        return_value = None
 
-        # Check if the blackboard exists
-        if name not in boards:
-            return (False, "[ERROR] Board does not exist!")
+        # Check if the Blackboard exists
+        if name not in self.__boards:
+            return_value = (False, "[ERROR] Board does not exist!")
 
-        with board_lock:
-                del boards[name]
+        if return_value is None:
+            # Delete Board
+            with self.__board_lock:
+                del self.__boards[name]
+                self.__save_boards()
+            return_value = (True, "[INFO] Board successfully deleted!")
 
-        self.debug_print()
+        # Log and return
+        self.log_call("exposed_delete_blackboard", (name,), return_value)
+        return return_value
 
-        return (True, "[INFO] Board successfully deleted.")
-
-
-    def exposed_delete_all_blackboards(self):
+    def exposed_delete_all_blackboards(self) -> tuple:
         """
-        Delete all existing blackboards!
+        Delete all existing Blackboards.
 
-        param - {str} - name - Unique name of the board
+        param - {str} - name - Unique name of the Blackboard
 
         return (Successful?,  Message)
         """
+        with self.__board_lock:
+            self.__boards.clear()
+            self.__save_boards()
+        return_value = (True, "[INFO] Successfully deleted all Boards!")
 
-        global boards
+        # Log and return
+        self.log_call("exposed_delete_all_blackboards", (), return_value)
+        return return_value
 
-        with board_lock:
-            boards = {}
-
-        self.debug_print()
-        return (True, "[INFO] Successfully deleted all boards!")
-
-        
-    def write_to_log():
+    def log_call(self, method: str, args: tuple, return_value: tuple) -> None:
         """
-        Write the need information to the log file
+        Log a method call from a client.
+
+        param - {str} - name - The name of the called method
+        param - {tuple} - name - The call arguments
+        param - {tuple} - name - The return_value of the method
         """
-        
-        pass
+        # Convert the args to a pretty string
+        if len(args) == 0:
+            args = "()"
+        elif len(args) == 1:
+            args = "(" + str(args[0]) + ")"
+        else:
+            args = str(args)
 
+        # Simple conversion of the return value -> Length always >= 2
+        return_value = str(return_value)
 
-    def debug_print(self):
+        # Log
+        logger.write_in_log([datetime.now(), "Method-Call", *self.__client_address, method, args, return_value])
+
+    @staticmethod
+    def load_boards() -> None:
         """
-        TODO Delete
+        Load all Boards from the board.json file.
+        If no such file exist a new one is created.
+        If an error occurs while reading an exiting board.json file the server is resumed with an empty Board
+        dictionary and the old file is overwritten with the first __save_boards call.
         """
-        global boards
-        print("\033c", end="")
-        print(json.dumps(boards, indent=4, ensure_ascii=False))
-        print("\n====================================================\n")
-        print("[INFO] To stop the Server please use Ctrl+C")
+        try:
+            with open('boards.json', 'r') as file:
+                BlackBoardHost.__boards = json.load(file)
+                print("[INFO] Successfully read Boards.")
+        except Exception as e:
+            if isinstance(e, FileNotFoundError):
+                BlackBoardHost.__save_boards()
+                print("[WARNING] Found no existing board.json file. Created a new one.")
+            else:
+                print("[ERROR] Error while loading board.json file.")
+            BlackBoardHost.__boards = {}
+
+    @staticmethod
+    def __save_boards() -> None:
+        """
+        Stores all Boards in the board.json file.
+        If no such file exist a new one is created.
+        """
+        try:
+            with open('boards.json', 'w') as file:
+                json.dump(BlackBoardHost.__boards, file, sort_keys=True, indent=4)
+                print("[INFO] Successfully stored Boards.")
+        except:
+            print("[ERROR] Error while saving the Boards.")
+
+    @staticmethod
+    def __board_is_valid(name: str) -> bool:
+        """
+        Return true, if the data on the board is valid.
+        Else it returns false.
+
+        param - {str} - name - Unique name of the Blackboard
+
+        return valid?
+        """
+        return BlackBoardHost.__boards[name]["entry_time"] + BlackBoardHost.__boards[name]["valid_sec"] >= time.time()
 
 
-#=====Main============================================
-if __name__ == "__main__":
+# =====Functions=======================================
+def show_help() -> None:
+    """
+    Print a help text on the console.
+    """
+    print("BlackBoardServer v0.1")
+    print("Arguments:")
+    print("-p / --port: Set the used port (default=8080)")
+    print("-h / --help: Show this text")
 
-    # Init the server
-    # TODO add port to chose maybe via argparse
-    print("[INFO] Starting server...")
-    server = ThreadedServer(BlackBoardHost, port = 8080)
+
+# =====Main============================================
+def main(argv: list) -> None:
+    """
+    The main-function of the server.
+    Parses the given arguments to determine the server port (default: 8080).
+    Afterward the server the existing Blackboards form the board.json file are loaded and the server is started.
+    It also logs the start and stop of the server.
+
+    param - {str} - argv - A list of the arguments
+    """
+    # Parse arguments:
+    try:
+        opts, args = getopt.getopt(argv, "p:h", ["port=", "help"])
+    except getopt.GetoptError as err:
+        print("[ERROR] Invalid arguments.")
+        sys.exit()
+    port = 8080
+
+    if len(args) != 0:
+        print("[ERROR] Invalid arguments.")
+
+    for o, a in opts:
+        if o in ("-h", "--help"):
+            show_help()
+            exit()
+        elif o in ("-p", "--port"):
+            try:
+                port = int(a)
+            except:
+                print("[ERROR] Invalid Port number.")
+                exit()
+            if port < 0 or port > 49151:
+                print("[ERROR] Port number out of range.")
+                exit()
+
+    # Start the server
+    print("[INFO] Starting server on port " + str(port) + "...")
+    server = None
+    try:
+        server = ThreadedServer(BlackBoardHost, port=port)
+    except Exception as e:
+        if isinstance(e, OSError):
+            print("[ERROR] Server could not be started on port " + str(port) + ". Maybe this port is already used.")
+            exit()
+        else:
+            print("[ERROR] An unknown error occurred. Closing the application.")
+            exit()
 
     # Start the Server
-    print("[INFO] Server started. To stop please use Ctrl+C")
-    server.start()
+    try:
+        logger.write_in_log([datetime.now(), "Server-Start"])
+        BlackBoardHost.load_boards()
+        print("[INFO] Server started. To stop please use Ctrl+C.")
+        server.start()
+    except KeyboardInterrupt:
+        pass
+    except:
+        print("[ERROR] An unknown error occurred. Closing the application.")
+
+    logger.write_in_log([datetime.now(), "Server-Stop"])
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -6,6 +6,7 @@
     TODO Validity zu Beginn auf true???
     TODO Unbegrenzte Gültigkeit bei Valid Time = 0 --> steht in seinen Anforderungen
     TODO Client nutzt Successful? variable nie
+    TODO Fix Bare Excepts?
 """
 
 
@@ -14,10 +15,13 @@ import sys
 import os
 import time
 import json
+import getopt
 from threading import Lock
 from datetime import datetime
+from typing import Union # for better type hints
+
 import logger as logger
-import getopt
+
 
 # add custom library location to path
 sys.path.insert(0, (str(os.path.dirname(os.path.abspath(__file__))) + "/RPyC/rpyc_main_folder"))
@@ -40,31 +44,37 @@ class BlackBoardHost(rpyc.Service):
         # storing the client address is needed because you can't get information from a closed socket
         self.__client_address = None
 
-    def on_connect(self, conn: rpyc.core.protocol.Connection):
+    def on_connect(self, conn: rpyc.core.protocol.Connection) -> None:
         """
-        TODO Docstring
+        Called when the client connects.
+        Saves the address of the connected client and writes a log entry.
+
+        param - {rpyc.core.protocol.Connection} - conn - The connection with the client
         """
         self.__client_address = conn.get_channel().stream.sock.getpeername()
         logger.write_in_log([datetime.now(), "Client-Connect", *self.__client_address])
 
     def on_disconnect(self, conn: rpyc.core.protocol.Connection):
         """
-        TODO Docstring
+        Called when the client is disconnected.
+        Writes a log entry.
+
+        param - {rpyc.core.protocol.Connection} - conn - The (former) connection with the client
         """
         logger.write_in_log([datetime.now(), "Client-Disconnect", *self.__client_address])
 
-    def exposed_create_blackboard(self, name, valid_sec):
+    def exposed_create_blackboard(self, name: str, valid_sec: Union[float, int, str]) -> tuple:
         """
-        Create a new blackboard by adding it to the JSON Database? Dict in RAM?
+        Create a new empty blackboard.
 
-        TODO Docstring
-
-        param - {str} - name - Name of the new blackbox
-        param - {float} - valid_sec - Time the Data in the blackbox shall be valid 
+        param - {str} - name - Name of the new blackboard
+        param - {float or int or str} - valid_sec - Time the data in the blackboard shall be valid
 
         return (Successful?, Message)
         """
-        # Check for correct types
+        # To be sure the string parameters are a string
+        name = str(name)
+
         # Convert valid_sec to float
         try:
             valid_sec = float(valid_sec)
@@ -79,7 +89,6 @@ class BlackBoardHost(rpyc.Service):
         if name in self.__boards:
             return (False, f"[ERROR] Board name '{name}' already exists!")
 
-        # Lock the dataframe
         with self.__board_lock:
             # Init the new blackboard
             new_blackboard = {
@@ -96,20 +105,23 @@ class BlackBoardHost(rpyc.Service):
 
         return (True, f"[INFO] Successfully created board {name}!")
 
-    def exposed_display_blackboard(self, name, data):
+    def exposed_display_blackboard(self, name: str, data: str) -> tuple:
         """
-        Update the data of the blackboard and refresh the timestamp
+        Update the data of the blackboard and refresh the timestamp.
 
-        param - {str} - name - Name of the EXISTING Blackboard
-        param - {str?} - data - Given data written to blackboard
+        param - {str} - name - Name of the existing blackboard
+        param - {str} - data - Given data written to the blackboard
 
         return (Successful?, Message)
         """
+        # To be sure the string parameters are a string
+        name = str(name)
+        data = str(data)
+
         # Check if the blackboard exists
         if name not in self.__boards:
             return (False, "[ERROR] Board does not exist!")
 
-        # Lock the dataframe
         with self.__board_lock:
             # Update the board information
             self.__boards[name]["entry_time"] = time.time()
@@ -119,14 +131,17 @@ class BlackBoardHost(rpyc.Service):
 
         return (True, "[INFO] Board successfully updated!")
 
-    def exposed_clear_blackboard(self, name):
+    def exposed_clear_blackboard(self, name: str) -> tuple:
         """
-        Clear the given board data and set to invalid status!
+        Clear the given blackboard data and set to invalid status.
 
-        param - {str} - name - Unique name of the board
+        param - {str} - name - Unique name of the blackboard
 
         return (Successful?, Message)
         """
+        # To be sure the string parameters are a string
+        name = str(name)
+
         # Check if the blackboard exists
         if name not in self.__boards:
             return (False, "[ERROR] Board does not exist!")
@@ -139,14 +154,16 @@ class BlackBoardHost(rpyc.Service):
 
         return (True, "[INFO] Board successfully cleared!")
 
-    def exposed_read_blackboard(self, name):
+    def exposed_read_blackboard(self, name: str) -> tuple:
         """
-        Return the data and valid state of the given board
+        Return the data and valid state of the given blackboard.
 
-        param - {str} - name - Unique name of the board
+        param - {str} - name - Unique name of the blackboard
 
         return (Successful?, data, is_valid, Message)
         """
+        # To be sure the string parameters are a string
+        name = str(name)
 
         # Check if the blackboard exists
         if name not in self.__boards:
@@ -172,14 +189,17 @@ class BlackBoardHost(rpyc.Service):
                 return (True, self.__boards[name]["data"], self.__boards[name]["is_valid"],
                         "[INFO] Successfully read with valid data!")
 
-    def exposed_get_blackboard_status(self, name):
+    def exposed_get_blackboard_status(self, name: str) -> tuple:
         """
-        Return current state of the given board
+        Return current state of the given blackboard.
 
-        param - {str} - name - Unique name of the board
+        param - {str} - name - Unique name of the blackboard
 
-        return (Successful?,  is_empty, entry_time, is_valid, Message)
+        return (Successful?, is_empty, entry_time, is_valid, Message)
         """
+        # To be sure the string parameters are a string
+        name = str(name)
+
         # Check if the blackboard exists
         if name not in self.__boards:
             return (False, "[ERROR] Board does not exist!")
@@ -200,13 +220,11 @@ class BlackBoardHost(rpyc.Service):
                 True, is_empty, self.__boards[name]["entry_time"], self.__boards[name]["is_valid"],
                 "[INFO] Successfully read board status!")
 
-    def exposed_list_blackboards(self):
+    def exposed_list_blackboards(self) -> tuple:
         """
-        Simply return a complete list of the blackboards
-        
-        param - {str} - name - Unique name of the board
+        Return a complete list of the blackboards.
 
-        return (Successful?,  list_of_boards, Message)
+        return (Successful?, list_of_boards, Message)
         """
         # Init the list
         list_of_boards = []
@@ -222,16 +240,17 @@ class BlackBoardHost(rpyc.Service):
 
         return (True, list_of_boards, "[INFO] Successful read of board list!")
 
-    def exposed_delete_blackboard(self, name):
+    def exposed_delete_blackboard(self, name: str) -> tuple:
         """
-        Delete the given board
+        Delete the given blackboard.
 
-        param - {str} - name - Unique name of the message
-
-        param - {str} - name - Unique name of the board
+        param - {str} - name - Unique name of the blackboard
 
         return (Successful?,  Message)
         """
+        # To be sure the string parameters are a string
+        name = str(name)
+
         # Check if the blackboard exists
         if name not in self.__boards:
             return (False, "[ERROR] Board does not exist!")
@@ -241,11 +260,11 @@ class BlackBoardHost(rpyc.Service):
             self.__save_boards()
         return (True, "[INFO] Board successfully deleted!")
 
-    def exposed_delete_all_blackboards(self):
+    def exposed_delete_all_blackboards(self) -> tuple:
         """
-        Delete all existing blackboards!
+        Delete all existing blackboards.
 
-        param - {str} - name - Unique name of the board
+        param - {str} - name - Unique name of the blackboard
 
         return (Successful?,  Message)
         """
@@ -262,9 +281,12 @@ class BlackBoardHost(rpyc.Service):
         logger.write_in_log([datetime.now(), "Method-Call", ip, port, method, str(args), str(return_value)])
 
     @staticmethod
-    def load_boards():
+    def load_boards() -> None:
         """
-        TODO Docstring
+        Load all boards from the board.json file.
+        If no such file exist a new one is created.
+        If an error occurs while reading an exiting board.json file the server is resumed with an empty board
+        dictionary and the old file is overwritten with the first __save_boards call.
         """
         try:
             with open('boards.json', 'r') as file:
@@ -279,9 +301,10 @@ class BlackBoardHost(rpyc.Service):
             BlackBoardHost.__boards = {}
 
     @staticmethod
-    def __save_boards():
+    def __save_boards() -> None:
         """
-        TODO Docstring
+        Stores all boards in the board.json file.
+        If no such file exist a new one is created.
         """
         try:
             with open('boards.json', 'w') as file:
@@ -290,17 +313,11 @@ class BlackBoardHost(rpyc.Service):
         except:
             print("[ERROR] Error while saving the boards.")
 
-        # Debug Print # TODO Remove
-        print("\033c", end="")
-        print(json.dumps(BlackBoardHost.__boards, indent=4, ensure_ascii=False))
-        print("\n====================================================\n")
-        print("[INFO] To stop the Server please use Ctrl+C.")
-
 
 # =====Functions=======================================
-def show_help():
+def show_help() -> None:
     """
-    TODO Docstring
+    Print a help text on the console.
     """
     print("BlackBoardServer v0.1")
     print("Arguments:")
@@ -309,13 +326,18 @@ def show_help():
 
 
 # =====Main============================================
-if __name__ == "__main__":
+def main(argv: list) -> None:
     """
-    TODO Docstring
+    The main-function of the server.
+    Parses the given arguments to determine the server port (default: 8080).
+    Afterward the server the existing blackboards form the board.json file are loaded and the server is started.
+    It also logs the start and stop of the server.
+
+    param - {str} - argv - A list of the arguments
     """
     # Parse arguments:
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "p:h", ["port=", "help"])
+        opts, args = getopt.getopt(argv, "p:h", ["port=", "help"])
     except getopt.GetoptError as err:
         print("[Error] Invalid arguments.")
         sys.exit()
@@ -350,3 +372,7 @@ if __name__ == "__main__":
     server.start()
 
     logger.write_in_log([datetime.now(), "Server-Stop"])
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

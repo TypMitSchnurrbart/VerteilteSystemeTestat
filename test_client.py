@@ -1,7 +1,8 @@
 """
-    Testing the RPyC Module
-    Requesting as a Client
-    TODO Docstring
+    RPC Client:
+    Contains the main-function of the client and smaller additional functions.
+    TODO Siehe Kommentar ACTION 6
+    TODO Fix Bare Excepts?
 """
 
 # ===== Imports =======================================
@@ -19,16 +20,17 @@ import rpyc
 
 
 # ==== Functions ======================================
-def get_input_name():
+def get_input_name() -> str:
     """
-    Function to get the board name form the user
+    Function to get the blackboard name form the user.
+    return blackboard_name
     """
     return input("Please enter the Name of the Board:\t")
 
 
-def show_help():
+def show_help() -> None:
     """
-    TODO Docstring
+    Print a help text on the console.
     """
     print("BlackBoardClient v0.1")
     print("Arguments:")
@@ -37,11 +39,21 @@ def show_help():
 
 
 # ===== Main ==========================================
-if __name__ == "__main__":
+def main(argv: list) -> None:
+    """
+    The main-function of the client.
+    Parses the given arguments to determine the server ip-address and port (default: localhost:8080).
+    Afterward it is tried to establish a connection to the server.
+    If the connection is established the user can use the server functions freely via console inputs.
+    If the connection can't be established, the connection is lost or the client is stopped with Ctrl+C the program
+    is stopped with a corresponding message.
+
+    param - {str} - argv - A list of the arguments
+    """
     try:
         # parse arguments
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "s:h", ["server=", "help"])
+            opts, args = getopt.getopt(argv, "s:h", ["server=", "help"])
         except getopt.GetoptError as err:
             print("[Error] Invalid arguments.")
             sys.exit()
@@ -81,8 +93,7 @@ if __name__ == "__main__":
         print("[INFO] Connecting to Server...")
         server_handle = rpyc.connect(ip, port).root
 
-
-        # Start Message
+        # Start message
         print("Welcome to the Blackboard Client! What do you want to do?")
 
         # Init
@@ -102,7 +113,7 @@ if __name__ == "__main__":
     try:
         while running:
 
-            # Get Action ID
+            # Get action id
             action_id = input(
                 "0\t-\tCreate blackboard\n"
                 "1\t-\tWrite blackboard\n"
@@ -116,7 +127,7 @@ if __name__ == "__main__":
                 "Input:\t"
             )
 
-            # print separator
+            # Print separator
             print("\n====================================================\n")
 
             # Check if finished
@@ -124,7 +135,7 @@ if __name__ == "__main__":
                 running = False
                 break
 
-            # Create a Blackboard
+            # Create a blackboard
             if action_id == "0":
                 answer = server_handle.create_blackboard(get_input_name(), input("Insert the valid time in seconds:\t"))
                 print(
@@ -140,7 +151,7 @@ if __name__ == "__main__":
                     f"Message:\t{answer[-1]}"
                 )
 
-            # Clear the Blackboard
+            # Clear the blackboard
             elif action_id == "2":
                 answer = server_handle.clear_blackboard(get_input_name())
                 print(
@@ -166,7 +177,7 @@ if __name__ == "__main__":
                         f"Message:\t{answer[-1]}"
                     )
 
-            # Get Blackboard Status
+            # Get blackboard Status
             elif action_id == "4":
                 answer = server_handle.get_blackboard_status(get_input_name())
                 # Check if request was successful
@@ -213,7 +224,7 @@ if __name__ == "__main__":
                         "Returning..."
                     )
 
-            # Delete all Blackboards
+            # Delete all blackboards
             elif action_id == "7":
                 security_question = input("Are you sure you want to delete ALL blackboards?\n[Y / n] : ")
                 # Check Security Question
@@ -233,8 +244,8 @@ if __name__ == "__main__":
             else:
                 print("Action unknown! Please stick to the given options!")
 
-            # Seperate the terminal from action to action
-            # with small delay to make it more understandable for the Human Eye
+            # Separate the terminal from action to action
+            # with small delay making it more understandable for the Human Eye
             time.sleep(0.8)
             print("\n====================================================\n")
 
@@ -246,3 +257,6 @@ if __name__ == "__main__":
             print("[ERROR] An unknown error occurred. Closing the application.")
             exit()
     print("[INFO] Closing connection...")
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -186,7 +186,7 @@ class BlackBoardHost(rpyc.Service):
                 # Check for empty data (always valid)
                 if self.__boards[name]["data"] is None:
                     # Return value with empty data
-                    return_value = (True, "", False,
+                    return_value = (True, self.__boards[name]["data"], False,
                                     "[WARNING] Successfully read but data is empty!")
                 elif not is_valid:
                     # Return value with invalid data

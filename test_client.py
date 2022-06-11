@@ -163,9 +163,13 @@ def main(argv: list) -> None:
                 answer = server_handle.read_blackboard(get_input_name())
                 # Check if request was successful
                 if answer[0]:
+                    if answer[1] is None:
+                        data = ""
+                    else:
+                        data = answer[1]
                     print(
                         "\n"
-                        f"Data:\t\t{answer[1]}\n"
+                        f"Data:\t\t{data}\n"
                         f"Is valid:\t{answer[2]}\n"
                         f"Message:\t{answer[-1]}"
                     )

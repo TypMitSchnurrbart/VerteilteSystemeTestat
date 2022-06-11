@@ -18,7 +18,7 @@ import logger as Logger
 import getopt
 
 # add custom library location to path
-sys.path.append(str(os.path.dirname(os.path.abspath(__file__))) + "/RPyC/rpyc_main_folder")
+sys.path.insert(0, (str(os.path.dirname(os.path.abspath(__file__))) + "/RPyC/rpyc_main_folder"))
 
 import rpyc
 from rpyc.utils.server import ThreadedServer

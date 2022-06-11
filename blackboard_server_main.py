@@ -1,12 +1,13 @@
 """
     RPC-Server:
-    Contains the server class, the main-function of the server and additional functions.
+    Contains the service class, the main-function of the server and additional functions.
     To realize the RPC communication a modified version of the RPyC library is used.
 
     TODO Validity zu Beginn auf true???
     TODO Unbegrenzte Gültigkeit bei Valid Time = 0 --> steht in seinen Anforderungen
     TODO Client nutzt Successful? variable nie
 """
+
 
 # =====Imports=========================================
 import sys
@@ -15,7 +16,7 @@ import time
 import json
 from threading import Lock
 from datetime import datetime
-import logger as Logger
+import logger as logger
 import getopt
 
 # add custom library location to path
@@ -25,7 +26,7 @@ import rpyc
 from rpyc.utils.server import ThreadedServer
 
 
-# =====Server Class====================================
+# =====Service Class===================================
 class BlackBoardHost(rpyc.Service):
     # static variables
     __boards = {}
@@ -33,23 +34,24 @@ class BlackBoardHost(rpyc.Service):
 
     def __init__(self):
         """
-        TODO
+        Initializes the BlackBoardHost (service) class.
+        A BlackBoardHost instance is created for each connected client.
         """
         # storing the client address is needed because you can't get information from a closed socket
         self.__client_address = None
 
-    def on_connect(self, conn):
+    def on_connect(self, conn: rpyc.core.protocol.Connection):
         """
         TODO Docstring
         """
-        self.__client_address = conn._channel.stream.sock.getpeername()
-        Logger.write_in_log([datetime.now(), "Client-Connect", *self.__client_address])
+        self.__client_address = conn.get_channel().stream.sock.getpeername()
+        logger.write_in_log([datetime.now(), "Client-Connect", *self.__client_address])
 
-    def on_disconnect(self, conn):
+    def on_disconnect(self, conn: rpyc.core.protocol.Connection):
         """
         TODO Docstring
         """
-        Logger.write_in_log([datetime.now(), "Client-Disconnect", *self.__client_address])
+        logger.write_in_log([datetime.now(), "Client-Disconnect", *self.__client_address])
 
     def exposed_create_blackboard(self, name, valid_sec):
         """
@@ -257,7 +259,7 @@ class BlackBoardHost(rpyc.Service):
         """
         TODO Docstring
         """
-        Logger.write_in_log([datetime.now(), "Method-Call", ip, port, method, str(args), str(return_value)])
+        logger.write_in_log([datetime.now(), "Method-Call", ip, port, method, str(args), str(return_value)])
 
     @staticmethod
     def load_boards():
@@ -341,10 +343,10 @@ if __name__ == "__main__":
     server = ThreadedServer(BlackBoardHost, port=port)
 
     BlackBoardHost.load_boards()
-    Logger.write_in_log([datetime.now(), "Server-Start"])
+    logger.write_in_log([datetime.now(), "Server-Start"])
 
     # Start the Server
     print("[INFO] Server started. To stop please use Ctrl+C.")
     server.start()
 
-    Logger.write_in_log([datetime.now(), "Server-Stop"])
+    logger.write_in_log([datetime.now(), "Server-Stop"])

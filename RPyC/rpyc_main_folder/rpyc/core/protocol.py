@@ -472,6 +472,12 @@ class Connection(object):
         timeout = self._config["sync_request_timeout"]
         return self.async_request(handler, *args, timeout=timeout).value
 
+    def get_channel(self):
+        """MANUALLY INSERTED
+        Return the channel object so that direct access isn't necessary
+        """
+        return self._channel
+
     def _async_request(self, handler, args=(), callback=(lambda a, b: None)):  # serving
         seq = self._get_seq_id()
         self._request_callbacks[seq] = callback
@@ -589,15 +595,18 @@ class Connection(object):
         return hash(obj)
 
     def _handle_call(self, obj, args, kwargs=()):  # request handler
+        # default behaviour
         return_value = obj(*args, **dict(kwargs))
 
-        # additional behaviour
+        # MANUALLY INSERTED additional behaviour
         log_call = getattr(obj.__self__, "log_call", None)
         if callable(log_call):
             try:
                 log_call(*self._channel.stream.sock.getpeername(), obj.__name__, args, return_value)
             except:
                 pass
+
+        # default behaviour
         return return_value
 
     def _handle_dir(self, obj):  # request handler

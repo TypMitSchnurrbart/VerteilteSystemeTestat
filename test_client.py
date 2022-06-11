@@ -104,15 +104,15 @@ if __name__ == "__main__":
 
             # Get Action ID
             action_id = input(
-                "0\t-\tCreate Blackboard\n"
-                "1\t-\tWrite Blackboard\n"
-                "2\t-\tClear Blackboard\n"
-                "3\t-\tRead Blackboard\n"
-                "4\t-\tGet Status of Blackboard\n"
-                "5\t-\tList all Blackboards\n"
-                "6\t-\tDelete Blackboard\n"
-                "7\t-\tDelete All Blackboards\n\n"
-                "Q\t-\tClose Connection & Exit\n\n"
+                "0\t-\tCreate blackboard\n"
+                "1\t-\tWrite blackboard\n"
+                "2\t-\tClear blackboard\n"
+                "3\t-\tRead blackboard\n"
+                "4\t-\tGet status of blackboard\n"
+                "5\t-\tList all blackboards\n"
+                "6\t-\tDelete blackboard\n"
+                "7\t-\tDelete all blackboards\n\n"
+                "Q\t-\tClose connection & exit\n\n"
                 "Input:\t"
             )
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
             # Create a Blackboard
             if action_id == "0":
-                answer = server_handle.create_blackboard(get_input_name(), input("Insert the Valid Time in Seconds:\t"))
+                answer = server_handle.create_blackboard(get_input_name(), input("Insert the valid time in seconds:\t"))
                 print(
                     "\n"
                     f"Message:\t{answer[-1]}"
@@ -134,7 +134,7 @@ if __name__ == "__main__":
 
             # Write to the blackboard
             elif action_id == "1":
-                answer = server_handle.display_blackboard(get_input_name(), input("Please insert the Data:\t"))
+                answer = server_handle.display_blackboard(get_input_name(), input("Please insert the data:\t"))
                 print(
                     "\n"
                     f"Message:\t{answer[-1]}"
@@ -156,7 +156,7 @@ if __name__ == "__main__":
                     print(
                         "\n"
                         f"Data:\t\t{answer[1]}\n"
-                        f"Is Valid:\t{answer[2]}\n"
+                        f"Is valid:\t{answer[2]}\n"
                         f"Message:\t{answer[-1]}"
                     )
                 # If not only display message
@@ -173,9 +173,9 @@ if __name__ == "__main__":
                 if answer[0]:
                     print(
                         "\n"
-                        f"Is Empty:\t{answer[1]}\n"
-                        f"Time Stamp:\t{answer[2]}\n"
-                        f"Is Valid:\t{answer[3]}\n"
+                        f"Is empty:\t{answer[1]}\n"
+                        f"Time stamp:\t{answer[2]}\n"
+                        f"Is valid:\t{answer[3]}\n"
                         f"Message:\t{answer[-1]}"
                     )
                 # If not only display message
@@ -190,7 +190,7 @@ if __name__ == "__main__":
                 answer = server_handle.list_blackboards()
                 blackboard_list = ", ".join(answer[1])
                 print(
-                    f"Board-List:\t{blackboard_list}\n"
+                    f"Board list:\t{blackboard_list}\n"
                     f"Message:\t{answer[-1]}"
                 )
 

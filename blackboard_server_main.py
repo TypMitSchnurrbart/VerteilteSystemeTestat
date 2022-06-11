@@ -1,13 +1,14 @@
 """
-    Testing the RPyC Module
-    Hosting a Server
+    RPC-Server:
+    Contains the server class, the main-function of the server and additional functions.
+    To realize the RPC communication a modified version of the RPyC library is used.
 
-    TODO DOCSTRING
     TODO Validity zu Beginn auf true???
+    TODO Unbegrenzte Gültigkeit bei Valid Time = 0 --> steht in seinen Anforderungen
+    TODO Client nutzt Successful? variable nie
 """
 
 # =====Imports=========================================
-
 import sys
 import os
 import time
@@ -26,6 +27,7 @@ from rpyc.utils.server import ThreadedServer
 
 # =====Server Class====================================
 class BlackBoardHost(rpyc.Service):
+    # static variables
     __boards = {}
     __board_lock = Lock()
 
@@ -33,8 +35,8 @@ class BlackBoardHost(rpyc.Service):
         """
         TODO
         """
-        # dict is needed because you can't get information from a closed socket
-        self.__client_address = {}
+        # storing the client address is needed because you can't get information from a closed socket
+        self.__client_address = None
 
     def on_connect(self, conn):
         """

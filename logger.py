@@ -1,4 +1,5 @@
 """
+    RPC-Server logger:
     Contains a simple logger function to log events in a csv file
 """
 

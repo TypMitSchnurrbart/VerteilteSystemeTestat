@@ -90,8 +90,7 @@ class BlackBoardHost(rpyc.Service):
                     "name": name,
                     "valid_sec": valid_sec,
                     "entry_time": time.time(),
-                    "is_valid": False,
-                    "data": ""
+                    "data": None
                 }
 
                 # Add to __boards
@@ -99,6 +98,7 @@ class BlackBoardHost(rpyc.Service):
                 self.__save_boards()
             return_value = (True, f"[INFO] Successfully created Board '{name}'!")
 
+        # Log and return
         self.log_call("exposed_create_blackboard", (name, valid_sec), return_value)
         return return_value
 
@@ -126,10 +126,10 @@ class BlackBoardHost(rpyc.Service):
                 # Update the Board information
                 self.__boards[name]["entry_time"] = time.time()
                 self.__boards[name]["data"] = data
-                self.__boards[name]["is_valid"] = True
                 self.__save_boards()
             return_value = (True, "[INFO] Board successfully updated!")
 
+        # Log and return
         self.log_call("exposed_display_blackboard", (name, data), return_value)
         return return_value
 
@@ -153,11 +153,11 @@ class BlackBoardHost(rpyc.Service):
         if return_value is None:
             with self.__board_lock:
                 # Update the Board information
-                self.__boards[name]["data"] = ""
-                self.__boards[name]["is_valid"] = False
+                self.__boards[name]["data"] = None
                 self.__save_boards()
             return_value = (True, "[INFO] Board successfully cleared!")
 
+        # Log and return
         self.log_call("exposed_clear_blackboard", (name,), return_value)
         return return_value
 
@@ -180,26 +180,24 @@ class BlackBoardHost(rpyc.Service):
 
         if return_value is None:
             with self.__board_lock:
-                # Update valid state before returning
-                if self.__boards[name]["entry_time"] + self.__boards[name]["valid_sec"] <= time.time():
-                    # Update valid state
-                    self.__boards[name]["is_valid"] = False
-                    self.__save_boards()
-                    # Return the data but with invalid message
-                    return_value = (True, self.__boards[name]["data"], self.__boards[name]["is_valid"],
+                # Check valid state
+                is_valid = self.__board_is_valid(name)
+
+                # Check for empty data (always valid)
+                if self.__boards[name]["data"] is None:
+                    # Return value with empty data
+                    return_value = (True, "", False,
+                                    "[WARNING] Successfully read but data is empty!")
+                elif not is_valid:
+                    # Return value with invalid data
+                    return_value = (True, self.__boards[name]["data"], is_valid,
                                     "[WARNING] Successfully read but data is invalid!")
-
-                # Data still valid
                 else:
-                    # Check for empty data
-                    if self.__boards[name]["data"] == "":
-                        return_value = (True, self.__boards[name]["data"], self.__boards[name]["is_valid"],
-                                        "[WARNING] Successfully read but data is empty!")
-                    else:
-                        # Return Read without problems!
-                        return_value = (True, self.__boards[name]["data"], self.__boards[name]["is_valid"],
-                                        "[INFO] Successfully read with valid data!")
+                    # Return value with valid data
+                    return_value = (True, self.__boards[name]["data"], is_valid,
+                                    "[INFO] Successfully read with valid data!")
 
+        # Log and return
         self.log_call("exposed_read_blackboard", (name,), return_value)
         return return_value
 
@@ -223,19 +221,16 @@ class BlackBoardHost(rpyc.Service):
         if return_value is None:
             with self.__board_lock:
                 # Check is the data is empty or not
-                if self.__boards[name]["data"] == "":
+                if self.__boards[name]["data"] is None:
                     is_empty = True
                 else:
                     is_empty = False
-                # Update valid state before returning
-                if self.__boards[name]["entry_time"] + self.__boards[name]["valid_sec"] <= time.time():
-                    # Update valid state
-                    self.__boards[name]["is_valid"] = False
-                    self.__save_boards()
-                # Return with the remaining information
-            return_value = (True, is_empty, self.__boards[name]["entry_time"], self.__boards[name]["is_valid"],
+                # Check valid state
+                is_valid = self.__board_is_valid(name)
+            return_value = (True, is_empty, self.__boards[name]["entry_time"], is_valid and not is_empty,
                             "[INFO] Successfully read Board status!")
 
+        # Log and return
         self.log_call("exposed_get_blackboard_status", (name,), return_value)
         return return_value
 
@@ -259,6 +254,7 @@ class BlackBoardHost(rpyc.Service):
         else:
             return_value = (True, list_of_boards, "[INFO] Successful read of Board list!")
 
+        # Log and return
         self.log_call("exposed_list_blackboards", (), return_value)
         return return_value
 
@@ -286,6 +282,7 @@ class BlackBoardHost(rpyc.Service):
                 self.__save_boards()
             return_value = (True, "[INFO] Board successfully deleted!")
 
+        # Log and return
         self.log_call("exposed_delete_blackboard", (name,), return_value)
         return return_value
 
@@ -298,16 +295,21 @@ class BlackBoardHost(rpyc.Service):
         return (Successful?,  Message)
         """
         with self.__board_lock:
-            self.__boards = {}
+            self.__boards.clear()
             self.__save_boards()
         return_value = (True, "[INFO] Successfully deleted all Boards!")
 
+        # Log and return
         self.log_call("exposed_delete_all_blackboards", (), return_value)
         return return_value
 
-    def log_call(self, method: str, args: tuple, return_value: tuple):
+    def log_call(self, method: str, args: tuple, return_value: tuple) -> None:
         """
-        TODO Docstring
+        Log a method call from a client.
+
+        param - {str} - name - The name of the called method
+        param - {tuple} - name - The call arguments
+        param - {tuple} - name - The return_value of the method
         """
         # Convert the args to a pretty string
         if len(args) == 0:
@@ -355,6 +357,18 @@ class BlackBoardHost(rpyc.Service):
                 print("[INFO] Successfully stored Boards.")
         except:
             print("[ERROR] Error while saving the Boards.")
+
+    @staticmethod
+    def __board_is_valid(name: str) -> bool:
+        """
+        Return true, if the data on the board is valid.
+        Else it returns false.
+
+        param - {str} - name - Unique name of the Blackboard
+
+        return valid?
+        """
+        return BlackBoardHost.__boards[name]["entry_time"] + BlackBoardHost.__boards[name]["valid_sec"] >= time.time()
 
 
 # =====Functions=======================================
@@ -405,14 +419,27 @@ def main(argv: list) -> None:
 
     # Start the server
     print("[INFO] Starting server on port " + str(port) + "...")
-    server = ThreadedServer(BlackBoardHost, port=port)
-
-    BlackBoardHost.load_boards()
-    logger.write_in_log([datetime.now(), "Server-Start"])
+    server = None
+    try:
+        server = ThreadedServer(BlackBoardHost, port=port)
+    except Exception as e:
+        if isinstance(e, OSError):
+            print("[ERROR] Server could not be started on port " + str(port) + ". Maybe this port is already used.")
+            exit()
+        else:
+            print("[ERROR] An unknown error occurred. Closing the application.")
+            exit()
 
     # Start the Server
-    print("[INFO] Server started. To stop please use Ctrl+C.")
-    server.start()
+    try:
+        logger.write_in_log([datetime.now(), "Server-Start"])
+        BlackBoardHost.load_boards()
+        print("[INFO] Server started. To stop please use Ctrl+C.")
+        server.start()
+    except KeyboardInterrupt:
+        pass
+    except:
+        print("[ERROR] An unknown error occurred. Closing the application.")
 
     logger.write_in_log([datetime.now(), "Server-Stop"])
 

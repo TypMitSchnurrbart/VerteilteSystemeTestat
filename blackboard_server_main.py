@@ -2,29 +2,18 @@
     RPC-Server:
     Contains the service class, the main-function of the server and additional functions.
     To realize the RPC communication a modified version of the RPyC library is used.
-
-    TODO Validity zu Beginn auf true???
-    TODO Unbegrenzte Gültigkeit bei Valid Time = 0 --> steht in seinen Anforderungen
-    TODO Client nutzt Successful? variable nie
-    TODO Fix Bare Excepts?
 """
-
 
 # =====Imports=========================================
 import sys
-import os
 import time
 import json
 import getopt
 from threading import Lock
 from datetime import datetime
-from typing import Union # for better type hints
+from typing import Union  # for better type hints
 
 import logger as logger
-
-
-# add custom library location to path
-sys.path.insert(0, (str(os.path.dirname(os.path.abspath(__file__))) + "/RPyC/rpyc_main_folder"))
 
 import rpyc
 from rpyc.utils.server import ThreadedServer
@@ -51,7 +40,8 @@ class BlackBoardHost(rpyc.Service):
 
         param - {rpyc.core.protocol.Connection} - conn - The connection with the client
         """
-        self.__client_address = conn.get_channel().stream.sock.getpeername()
+        # Access protected attribute. But can't be done otherwise without modifying the library.
+        self.__client_address = conn._channel.stream.sock.getpeername()
         logger.write_in_log([datetime.now(), "Client-Connect", *self.__client_address])
 
     def on_disconnect(self, conn: rpyc.core.protocol.Connection):
@@ -75,35 +65,42 @@ class BlackBoardHost(rpyc.Service):
         # To be sure the string parameters are a string
         name = str(name)
 
+        return_value = None
+
         # Convert valid_sec to float
         try:
             valid_sec = float(valid_sec)
         except ValueError:
-            return (False, "[ERROR] Invalid parameters! Please give valid time in seconds as Float or Int!")
+            return_value = (False, "[ERROR] Invalid parameters! Please give valid time in seconds as Float or Int!")
 
-        # Check if the valid time is bigger than zero!
-        if valid_sec <= 0:
-            return (False, f"[ERROR] The valid time must be greater than 0! Given value: {valid_sec}.")
+        # Check if the valid time is bigger or equal to than zero!
+        if return_value is None and valid_sec == 0:
+            valid_sec = float("inf")
+        if return_value is None and valid_sec <= 0:
+            return_value = (False, f"[ERROR] The valid time must be greater or equal to 0! Given value: {valid_sec}.")
 
         # Check if name already given
-        if name in self.__boards:
-            return (False, f"[ERROR] Board name '{name}' already exists!")
+        if return_value is None and name in self.__boards:
+            return_value = (False, f"[ERROR] Board name '{name}' already exists!")
 
-        with self.__board_lock:
-            # Init the new blackboard
-            new_blackboard = {
-                "name": name,
-                "valid_sec": valid_sec,
-                "entry_time": time.time(),
-                "is_valid": True,
-                "data": ""
-            }
+        if return_value is None:
+            with self.__board_lock:
+                # Init the new blackboard
+                new_blackboard = {
+                    "name": name,
+                    "valid_sec": valid_sec,
+                    "entry_time": time.time(),
+                    "is_valid": False,
+                    "data": ""
+                }
 
-            # Add to boards
-            self.__boards[name] = new_blackboard
-            self.__save_boards()
+                # Add to __boards
+                self.__boards[name] = new_blackboard
+                self.__save_boards()
+            return_value = (True, f"[INFO] Successfully created board {name}!")
 
-        return (True, f"[INFO] Successfully created board {name}!")
+        self.log_call("exposed_create_blackboard", (name, valid_sec), return_value)
+        return return_value
 
     def exposed_display_blackboard(self, name: str, data: str) -> tuple:
         """
@@ -118,18 +115,23 @@ class BlackBoardHost(rpyc.Service):
         name = str(name)
         data = str(data)
 
+        return_value = None
+
         # Check if the blackboard exists
         if name not in self.__boards:
-            return (False, "[ERROR] Board does not exist!")
+            return_value = (False, "[ERROR] Board does not exist!")
 
-        with self.__board_lock:
-            # Update the board information
-            self.__boards[name]["entry_time"] = time.time()
-            self.__boards[name]["data"] = data
-            self.__boards[name]["is_valid"] = True
-            self.__save_boards()
+        if return_value is None:
+            with self.__board_lock:
+                # Update the board information
+                self.__boards[name]["entry_time"] = time.time()
+                self.__boards[name]["data"] = data
+                self.__boards[name]["is_valid"] = True
+                self.__save_boards()
+            return_value = (True, "[INFO] Board successfully updated!")
 
-        return (True, "[INFO] Board successfully updated!")
+        self.log_call("exposed_display_blackboard", (name, data), return_value)
+        return return_value
 
     def exposed_clear_blackboard(self, name: str) -> tuple:
         """
@@ -142,17 +144,22 @@ class BlackBoardHost(rpyc.Service):
         # To be sure the string parameters are a string
         name = str(name)
 
+        return_value = None
+
         # Check if the blackboard exists
         if name not in self.__boards:
-            return (False, "[ERROR] Board does not exist!")
+            return_value = (False, "[ERROR] Board does not exist!")
 
-        with self.__board_lock:
-            # Update the board information
-            self.__boards[name]["data"] = ""
-            self.__boards[name]["is_valid"] = False
-            self.__save_boards()
+        if return_value is None:
+            with self.__board_lock:
+                # Update the board information
+                self.__boards[name]["data"] = ""
+                self.__boards[name]["is_valid"] = False
+                self.__save_boards()
+            return_value = (True, "[INFO] Board successfully cleared!")
 
-        return (True, "[INFO] Board successfully cleared!")
+        self.log_call("exposed_clear_blackboard", (name,), return_value)
+        return return_value
 
     def exposed_read_blackboard(self, name: str) -> tuple:
         """
@@ -165,29 +172,36 @@ class BlackBoardHost(rpyc.Service):
         # To be sure the string parameters are a string
         name = str(name)
 
+        return_value = None
+
         # Check if the blackboard exists
         if name not in self.__boards:
-            return (False, "[ERROR] Board does not exist!")
+            return_value = (False, "[ERROR] Board does not exist!")
 
-        with self.__board_lock:
-            # Update valid state before returning
-            if self.__boards[name]["entry_time"] + self.__boards[name]["valid_sec"] <= time.time():
-                # Update valid state
-                self.__boards[name]["is_valid"] = False
-                self.__save_boards()
-                # Return the data but with invalid message
-                return (True, self.__boards[name]["data"], self.__boards[name]["is_valid"],
-                        "[WARNING] Successfully read but data is invalid!")
+        if return_value is None:
+            with self.__board_lock:
+                # Update valid state before returning
+                if self.__boards[name]["entry_time"] + self.__boards[name]["valid_sec"] <= time.time():
+                    # Update valid state
+                    self.__boards[name]["is_valid"] = False
+                    self.__save_boards()
+                    # Return the data but with invalid message
+                    return_value = (True, self.__boards[name]["data"], self.__boards[name]["is_valid"],
+                                    "[WARNING] Successfully read but data is invalid!")
 
-            # Data still valid
-            else:
-                # Check for empty data
-                if self.__boards[name]["data"] == "":
-                    return (True, self.__boards[name]["data"], self.__boards[name]["is_valid"],
-                            "[WARNING] Successfully read but data is empty!")
-                # Return Read without problems!
-                return (True, self.__boards[name]["data"], self.__boards[name]["is_valid"],
-                        "[INFO] Successfully read with valid data!")
+                # Data still valid
+                else:
+                    # Check for empty data
+                    if self.__boards[name]["data"] == "":
+                        return_value = (True, self.__boards[name]["data"], self.__boards[name]["is_valid"],
+                                        "[WARNING] Successfully read but data is empty!")
+                    else:
+                        # Return Read without problems!
+                        return_value = (True, self.__boards[name]["data"], self.__boards[name]["is_valid"],
+                                        "[INFO] Successfully read with valid data!")
+
+        self.log_call("exposed_read_blackboard", (name,), return_value)
+        return return_value
 
     def exposed_get_blackboard_status(self, name: str) -> tuple:
         """
@@ -200,25 +214,30 @@ class BlackBoardHost(rpyc.Service):
         # To be sure the string parameters are a string
         name = str(name)
 
+        return_value = None
+
         # Check if the blackboard exists
         if name not in self.__boards:
-            return (False, "[ERROR] Board does not exist!")
+            return_value = (False, "[ERROR] Board does not exist!")
 
-        with self.__board_lock:
-            # Check is the data is empty or not
-            if self.__boards[name]["data"] == "":
-                is_empty = True
-            else:
-                is_empty = False
-            # Update valid state before returning
-            if self.__boards[name]["entry_time"] + self.__boards[name]["valid_sec"] <= time.time():
-                # Update valid state
-                self.__boards[name]["is_valid"] = False
-                self.__save_boards()
-            # Return with the remaining information
-            return (
-                True, is_empty, self.__boards[name]["entry_time"], self.__boards[name]["is_valid"],
-                "[INFO] Successfully read board status!")
+        if return_value is None:
+            with self.__board_lock:
+                # Check is the data is empty or not
+                if self.__boards[name]["data"] == "":
+                    is_empty = True
+                else:
+                    is_empty = False
+                # Update valid state before returning
+                if self.__boards[name]["entry_time"] + self.__boards[name]["valid_sec"] <= time.time():
+                    # Update valid state
+                    self.__boards[name]["is_valid"] = False
+                    self.__save_boards()
+                # Return with the remaining information
+            return_value = (True, is_empty, self.__boards[name]["entry_time"], self.__boards[name]["is_valid"],
+                            "[INFO] Successfully read board status!")
+
+        self.log_call("exposed_get_blackboard_status", (name,), return_value)
+        return return_value
 
     def exposed_list_blackboards(self) -> tuple:
         """
@@ -236,9 +255,12 @@ class BlackBoardHost(rpyc.Service):
 
         # Check for empty list to return a different message
         if len(list_of_boards) == 0:
-            return (True, list_of_boards, "[ERROR] No boards found! Please create one first!")
+            return_value = (True, list_of_boards, "[ERROR] No boards found! Please create one first!")
+        else:
+            return_value = (True, list_of_boards, "[INFO] Successful read of board list!")
 
-        return (True, list_of_boards, "[INFO] Successful read of board list!")
+        self.log_call("exposed_list_blackboards", (), return_value)
+        return return_value
 
     def exposed_delete_blackboard(self, name: str) -> tuple:
         """
@@ -251,14 +273,21 @@ class BlackBoardHost(rpyc.Service):
         # To be sure the string parameters are a string
         name = str(name)
 
+        return_value = None
+
         # Check if the blackboard exists
         if name not in self.__boards:
-            return (False, "[ERROR] Board does not exist!")
+            return_value = (False, "[ERROR] Board does not exist!")
 
-        with self.__board_lock:
-            del self.__boards[name]
-            self.__save_boards()
-        return (True, "[INFO] Board successfully deleted!")
+        if return_value is None:
+            # Delete board
+            with self.__board_lock:
+                del self.__boards[name]
+                self.__save_boards()
+            return_value = (True, "[INFO] Board successfully deleted!")
+
+        self.log_call("exposed_delete_blackboard", (name,), return_value)
+        return return_value
 
     def exposed_delete_all_blackboards(self) -> tuple:
         """
@@ -271,14 +300,28 @@ class BlackBoardHost(rpyc.Service):
         with self.__board_lock:
             self.__boards = {}
             self.__save_boards()
-        return (True, "[INFO] Successfully deleted all boards!")
+        return_value = (True, "[INFO] Successfully deleted all boards!")
 
-    @staticmethod
-    def log_call(ip, port, method, args, return_value):
+        self.log_call("exposed_delete_all_blackboards", (), return_value)
+        return return_value
+
+    def log_call(self, method: str, args: tuple, return_value: tuple):
         """
         TODO Docstring
         """
-        logger.write_in_log([datetime.now(), "Method-Call", ip, port, method, str(args), str(return_value)])
+        # Convert the args to a pretty string
+        if len(args) == 0:
+            args = "()"
+        elif len(args) == 1:
+            args = "(" + str(args[0]) + ")"
+        else:
+            args = str(args)
+
+        # Simple conversion of the return value -> Length always >= 2
+        return_value = str(return_value)
+
+        # Log
+        logger.write_in_log([datetime.now(), "Method-Call", *self.__client_address, method, args, return_value])
 
     @staticmethod
     def load_boards() -> None:
@@ -339,12 +382,12 @@ def main(argv: list) -> None:
     try:
         opts, args = getopt.getopt(argv, "p:h", ["port=", "help"])
     except getopt.GetoptError as err:
-        print("[Error] Invalid arguments.")
+        print("[ERROR] Invalid arguments.")
         sys.exit()
     port = 8080
 
     if len(args) != 0:
-        print("[Error] Invalid arguments.")
+        print("[ERROR] Invalid arguments.")
 
     for o, a in opts:
         if o in ("-h", "--help"):
@@ -354,10 +397,10 @@ def main(argv: list) -> None:
             try:
                 port = int(a)
             except:
-                print("[Error] Invalid Port number.")
+                print("[ERROR] Invalid Port number.")
                 exit()
             if port < 0 or port > 49151:
-                print("[Error] Port number out of range.")
+                print("[ERROR] Port number out of range.")
                 exit()
 
     # Start the server

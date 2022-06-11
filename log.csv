@@ -115,3 +115,20 @@ Timestamp,Event,IP,Port,Method,Arguments,Return
 2022-06-10 20:08:13.838265,Server-Start
 2022-06-10 20:08:15.808385,Client-Connect,127.0.0.1,60886
 2022-06-10 20:08:18.820426,Server-Stop
+2022-06-11 12:25:18.953958,Server-Start
+2022-06-11 12:25:23.435778,Client-Connect,127.0.0.1,49230
+2022-06-11 12:25:39.672875,Method-Call,127.0.0.1,49230,exposed_create_blackboard,"('Client1B', 90.0)","(True, '[INFO] Successfully created board Client1B!')"
+2022-06-11 12:25:43.475878,Client-Connect,127.0.0.1,49231
+2022-06-11 12:25:55.223598,Method-Call,127.0.0.1,49231,exposed_create_blackboard,"('Client2B', 8800.0)","(True, '[INFO] Successfully created board Client2B!')"
+2022-06-11 12:26:15.561189,Client-Disconnect,127.0.0.1,49231
+2022-06-11 12:26:18.200696,Client-Disconnect,127.0.0.1,49230
+2022-06-11 13:12:05.990619,Client-Connect,127.0.0.1,65427
+2022-06-11 13:12:08.998438,Server-Stop
+2022-06-11 13:16:49.802819,Server-Start
+2022-06-11 13:16:53.913915,Client-Connect,127.0.0.1,65451
+2022-06-11 13:17:03.861783,Method-Call,127.0.0.1,65451,exposed_create_blackboard,"('B2', inf)","(True, '[INFO] Successfully created board B2!')"
+2022-06-11 13:17:11.881913,Method-Call,127.0.0.1,65451,exposed_get_blackboard_status,"('B2',)","(True, True, 1654946223.8607807, False, '[INFO] Successfully read board status!')"
+2022-06-11 13:17:27.566296,Method-Call,127.0.0.1,65451,exposed_display_blackboard,"('B2', 'Test')","(True, '[INFO] Board successfully updated!')"
+2022-06-11 13:17:33.036620,Method-Call,127.0.0.1,65451,exposed_read_blackboard,"('B2',)","(True, 'Test', True, '[INFO] Successfully read with valid data!')"
+2022-06-11 13:17:50.026555,Method-Call,127.0.0.1,65451,exposed_read_blackboard,"('B2',)","(True, 'Test', True, '[INFO] Successfully read with valid data!')"
+2022-06-11 13:18:38.484991,Method-Call,127.0.0.1,65451,exposed_get_blackboard_status,"('B2',)","(True, False, 1654946247.5643027, True, '[INFO] Successfully read board status!')"

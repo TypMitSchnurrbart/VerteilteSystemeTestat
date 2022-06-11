@@ -27,6 +27,13 @@
         "name": "B1",
         "valid_sec": 80.0
     },
+    "B2": {
+        "data": "Test",
+        "entry_time": 1654946247.5643027,
+        "is_valid": true,
+        "name": "B2",
+        "valid_sec": Infinity
+    },
     "Billy": {
         "data": "",
         "entry_time": 1654877683.5686274,
@@ -40,5 +47,19 @@
         "is_valid": true,
         "name": "Bo",
         "valid_sec": 1.0
+    },
+    "Client1B": {
+        "data": "",
+        "entry_time": 1654943139.6703796,
+        "is_valid": true,
+        "name": "Client1B",
+        "valid_sec": 90.0
+    },
+    "Client2B": {
+        "data": "",
+        "entry_time": 1654943155.223599,
+        "is_valid": true,
+        "name": "Client2B",
+        "valid_sec": 8800.0
     }
 }

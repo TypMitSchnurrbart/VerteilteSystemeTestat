@@ -1,8 +1,6 @@
 """
     RPC Client:
     Contains the main-function of the client and smaller additional functions.
-    TODO Siehe Kommentar ACTION 6
-    TODO Fix Bare Excepts?
 """
 
 # ===== Imports =======================================
@@ -55,12 +53,12 @@ def main(argv: list) -> None:
         try:
             opts, args = getopt.getopt(argv, "s:h", ["server=", "help"])
         except getopt.GetoptError as err:
-            print("[Error] Invalid arguments.")
+            print("[ERROR] Invalid arguments.")
             sys.exit()
         port = 8080
         ip = "localhost"
         if len(args) != 0:
-            print("[Error] Invalid arguments.")
+            print("[ERROR] Invalid arguments.")
 
         for o, a in opts:
             if o in ("-h", "--help"):
@@ -70,23 +68,23 @@ def main(argv: list) -> None:
                 try:
                     ip, port = a.split(":")
                 except:
-                    print("[Error] Invalid server address.")
+                    print("[ERROR] Invalid server address.")
                     exit()
                 # validate ip
                 try:
                     if ip != "localhost":
                         ipaddress.ip_address(ip)
                 except:
-                    print("[Error] Invalid server ip address.")
+                    print("[ERROR] Invalid server ip address.")
                     exit()
                 # validate port
                 try:
                     port = int(port)
                 except:
-                    print("[Error] Invalid server port number.")
+                    print("[ERROR] Invalid server port number.")
                     exit()
                 if port < 0 or port > 49151:
-                    print("[Error] Server port number out of range.")
+                    print("[ERROR] Server port number out of range.")
                     exit()
 
         # Connect to the server
@@ -206,7 +204,6 @@ def main(argv: list) -> None:
                 )
 
             # Delete given blackboard
-            # TODO Eventuell zuerst prüfen, ob es das Blackboard gibt
             elif action_id == "6":
                 # Get board name and ask for certanity
                 board_name = get_input_name()
@@ -226,7 +223,7 @@ def main(argv: list) -> None:
 
             # Delete all blackboards
             elif action_id == "7":
-                security_question = input("Are you sure you want to delete ALL blackboards?\n[Y / n] : ")
+                security_question = input("Are you sure you want to delete ALL blackboards?\n[Y / N] : ")
                 # Check Security Question
                 if security_question == "Y":
                     answer = server_handle.delete_all_blackboards()
@@ -257,6 +254,7 @@ def main(argv: list) -> None:
             print("[ERROR] An unknown error occurred. Closing the application.")
             exit()
     print("[INFO] Closing connection...")
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

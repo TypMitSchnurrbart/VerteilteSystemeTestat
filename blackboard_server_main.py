@@ -16,7 +16,7 @@ from rpyc.utils.server import ThreadedServer
 from typing import Union  # for better type hints
 
 import logger as logger
-from VerteilteSystemeTestat.lock_timeout import lock_timeout
+from lock_timeout import lock_timeout
 
 
 # =====Service Class===================================

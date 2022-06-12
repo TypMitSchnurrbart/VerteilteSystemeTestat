@@ -6,14 +6,9 @@
 # ===== Imports =======================================
 import socket
 import sys
-import os
 import time
 import getopt
 import ipaddress
-
-# add custom library location to path
-sys.path.insert(0, (str(os.path.dirname(os.path.abspath(__file__))) + "/RPyC/rpyc_main_folder"))
-
 import rpyc
 
 
@@ -202,11 +197,18 @@ def main(argv: list) -> None:
             # List all Blackboards
             elif action_id == "5":
                 answer = server_handle.list_blackboards()
-                blackboard_list = ", ".join(answer[1])
-                print(
-                    f"Board list:\t{blackboard_list}\n"
-                    f"Message:\t{answer[-1]}"
-                )
+                # Check if request was successful
+                if answer[0]:
+                    blackboard_list = ", ".join(answer[1])
+                    print(
+                        f"Board list:\t{blackboard_list}\n"
+                        f"Message:\t{answer[-1]}"
+                    )
+                else:
+                    print(
+                        "\n"
+                        f"Message:\t{answer[-1]}"
+                    )
 
             # Delete given Blackboard
             elif action_id == "6":

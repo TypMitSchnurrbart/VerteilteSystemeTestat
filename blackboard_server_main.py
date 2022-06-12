@@ -11,12 +11,12 @@ import json
 import getopt
 from threading import Lock
 from datetime import datetime
+import rpyc
+from rpyc.utils.server import ThreadedServer
 from typing import Union  # for better type hints
 
 import logger as logger
-
-import rpyc
-from rpyc.utils.server import ThreadedServer
+from VerteilteSystemeTestat.lock_timeout import lock_timeout
 
 
 # =====Service Class===================================
@@ -60,43 +60,48 @@ class BlackBoardHost(rpyc.Service):
         param - {str} - name - Name of the new Blackboard
         param - {float or int or str} - valid_sec - Time the data in the Blackboard shall be valid
 
-        return (Successful?, Message)
+        return (successful?, message)
         """
         # To be sure the string parameters are a string
         name = str(name)
 
+        # Initialize return_value variable
         return_value = None
 
         # Convert valid_sec to float
         try:
             valid_sec = float(valid_sec)
+            if valid_sec == 0:
+                valid_sec = float("inf")
         except ValueError:
             return_value = (False, "[ERROR] Invalid parameters! Please give valid time in seconds as Float or Int!")
 
-        # Check if the valid time is bigger or equal to than zero!
-        if return_value is None and valid_sec == 0:
-            valid_sec = float("inf")
+        # Check if the valid time is lower to than zero
         if return_value is None and valid_sec <= 0:
             return_value = (False, f"[ERROR] The valid time must be greater or equal to 0! Given value: {valid_sec}.")
 
-        # Check if name already given
-        if return_value is None and name in self.__boards:
-            return_value = (False, f"[ERROR] Board name '{name}' already exists!")
-
         if return_value is None:
-            with self.__board_lock:
-                # Init the new Blackboard
-                new_blackboard = {
-                    "name": name,
-                    "valid_sec": valid_sec,
-                    "entry_time": time.time(),
-                    "data": None
-                }
-
-                # Add to __boards
-                self.__boards[name] = new_blackboard
-                self.__save_boards()
-            return_value = (True, f"[INFO] Successfully created Board '{name}'!")
+            with lock_timeout(self.__board_lock, 10) as acquired:
+                if acquired:
+                    if name in self.__boards:
+                        # Blackboard name already used
+                        return_value = (False, f"[ERROR] Board name '{name}' already exists!")
+                    else:
+                        # Create new Blackboard
+                        new_blackboard = {
+                            "name": name,
+                            "valid_sec": valid_sec,
+                            "entry_time": time.time(),
+                            "data": None
+                        }
+                        time.sleep(20)
+                        # Add to __boards
+                        self.__boards[name] = new_blackboard
+                        self.__save_boards()
+                        return_value = (True, f"[INFO] Successfully created Board '{name}'!")
+                else:
+                    # Timeout
+                    return_value = (False, "[TIMEOUT] The server is too busy. Board not created. Try again later.")
 
         # Log and return
         self.log_call("exposed_create_blackboard", (name, valid_sec), return_value)
@@ -109,25 +114,26 @@ class BlackBoardHost(rpyc.Service):
         param - {str} - name - Name of the existing Blackboard
         param - {str} - data - Given data written to the Blackboard
 
-        return (Successful?, Message)
+        return (successful?, message)
         """
         # To be sure the string parameters are a string
         name = str(name)
         data = str(data)
 
-        return_value = None
-
-        # Check if the Blackboard exists
-        if name not in self.__boards:
-            return_value = (False, "[ERROR] Board does not exist!")
-
-        if return_value is None:
-            with self.__board_lock:
-                # Update the Board information
-                self.__boards[name]["entry_time"] = time.time()
-                self.__boards[name]["data"] = data
-                self.__save_boards()
-            return_value = (True, "[INFO] Board successfully updated!")
+        with lock_timeout(self.__board_lock, 10) as acquired:
+            if acquired:
+                if name in self.__boards:
+                    # Update the Blackboard information
+                    self.__boards[name]["entry_time"] = time.time()
+                    self.__boards[name]["data"] = data
+                    self.__save_boards()
+                    return_value = (True, "[INFO] Board successfully updated!")
+                else:
+                    # Blackboard does not exist
+                    return_value = (False, "[ERROR] Board does not exist!")
+            else:
+                # Timeout
+                return_value = (False, "[TIMEOUT] The server is too busy. Board not updated. Try again later.")
 
         # Log and return
         self.log_call("exposed_display_blackboard", (name, data), return_value)
@@ -139,23 +145,24 @@ class BlackBoardHost(rpyc.Service):
 
         param - {str} - name - Unique name of the Blackboard
 
-        return (Successful?, Message)
+        return (successful?, message)
         """
         # To be sure the string parameters are a string
         name = str(name)
 
-        return_value = None
-
-        # Check if the Blackboard exists
-        if name not in self.__boards:
-            return_value = (False, "[ERROR] Board does not exist!")
-
-        if return_value is None:
-            with self.__board_lock:
-                # Update the Board information
-                self.__boards[name]["data"] = None
-                self.__save_boards()
-            return_value = (True, "[INFO] Board successfully cleared!")
+        with lock_timeout(self.__board_lock, 10) as acquired:
+            if acquired:
+                if name in self.__boards:
+                    # Update the Blackboard information
+                    self.__boards[name]["data"] = None
+                    self.__save_boards()
+                    return_value = (True, "[INFO] Board successfully cleared!")
+                else:
+                    # Blackboard does not exist
+                    return_value = (False, "[ERROR] Board does not exist!")
+            else:
+                # Timeout
+                return_value = (False, "[TIMEOUT] The server is too busy. Board not cleared. Try again later.")
 
         # Log and return
         self.log_call("exposed_clear_blackboard", (name,), return_value)
@@ -167,35 +174,34 @@ class BlackBoardHost(rpyc.Service):
 
         param - {str} - name - Unique name of the Blackboard
 
-        return (Successful?, data, is_valid, Message)
+        return (True, data, is_valid, message) OR (False, message)
         """
         # To be sure the string parameters are a string
         name = str(name)
 
-        return_value = None
-
-        # Check if the Blackboard exists
-        if name not in self.__boards:
-            return_value = (False, "[ERROR] Board does not exist!")
-
-        if return_value is None:
-            with self.__board_lock:
-                # Check valid state
-                is_valid = self.__board_is_valid(name)
-
-                # Check for empty data (always valid)
-                if self.__boards[name]["data"] is None:
-                    # Return value with empty data
-                    return_value = (True, self.__boards[name]["data"], False,
-                                    "[WARNING] Successfully read but data is empty!")
-                elif not is_valid:
-                    # Return value with invalid data
-                    return_value = (True, self.__boards[name]["data"], is_valid,
-                                    "[WARNING] Successfully read but data is invalid!")
+        with lock_timeout(self.__board_lock, 10) as acquired:
+            if acquired:
+                if name in self.__boards:
+                    # Read Blackboard
+                    is_valid = self.__board_is_valid(name)
+                    if self.__boards[name]["data"] is None:
+                        # Return value with empty data (always invalid)
+                        return_value = (True, self.__boards[name]["data"], False,
+                                        "[WARNING] Successfully read but data is empty!")
+                    elif not is_valid:
+                        # Return value with invalid data
+                        return_value = (True, self.__boards[name]["data"], is_valid,
+                                        "[WARNING] Successfully read but data is invalid!")
+                    else:
+                        # Return value with valid data
+                        return_value = (True, self.__boards[name]["data"], is_valid,
+                                        "[INFO] Successfully read with valid data!")
                 else:
-                    # Return value with valid data
-                    return_value = (True, self.__boards[name]["data"], is_valid,
-                                    "[INFO] Successfully read with valid data!")
+                    # Blackboard does not exist
+                    return_value = (False, "[ERROR] Board does not exist!")
+            else:
+                # Timeout
+                return_value = (False, "[TIMEOUT] The server is too busy. Board not read. Try again later.")
 
         # Log and return
         self.log_call("exposed_read_blackboard", (name,), return_value)
@@ -207,28 +213,28 @@ class BlackBoardHost(rpyc.Service):
 
         param - {str} - name - Unique name of the Blackboard
 
-        return (Successful?, is_empty, entry_time, is_valid, Message)
+        return (True, is_empty, entry_time, is_valid, message) OR (False, message)
         """
         # To be sure the string parameters are a string
         name = str(name)
 
-        return_value = None
-
-        # Check if the Blackboard exists
-        if name not in self.__boards:
-            return_value = (False, "[ERROR] Board does not exist!")
-
-        if return_value is None:
-            with self.__board_lock:
-                # Check is the data is empty or not
-                if self.__boards[name]["data"] is None:
-                    is_empty = True
+        with lock_timeout(self.__board_lock, 10) as acquired:
+            if acquired:
+                if name in self.__boards:
+                    # Get Blackboard state
+                    if self.__boards[name]["data"] is None:
+                        is_empty = True
+                    else:
+                        is_empty = False
+                    is_valid = self.__board_is_valid(name)
+                    return_value = (True, is_empty, self.__boards[name]["entry_time"], is_valid and not is_empty,
+                                    "[INFO] Successfully read Board status!")
                 else:
-                    is_empty = False
-                # Check valid state
-                is_valid = self.__board_is_valid(name)
-            return_value = (True, is_empty, self.__boards[name]["entry_time"], is_valid and not is_empty,
-                            "[INFO] Successfully read Board status!")
+                    # Blackboard does not exist
+                    return_value = (False, "[ERROR] Board does not exist!")
+            else:
+                # Timeout
+                return_value = (False, "[TIMEOUT] The server is too busy. Board not read. Try again later.")
 
         # Log and return
         self.log_call("exposed_get_blackboard_status", (name,), return_value)
@@ -238,21 +244,30 @@ class BlackBoardHost(rpyc.Service):
         """
         Return a complete list of the Blackboards.
 
-        return (Successful?, list_of_boards, Message)
+        return (True, list_of_boards, message) or (False, list_of_boards, message)
         """
-        # Init the list
+        # Initialize the list
         list_of_boards = []
 
-        # get all Board names
-        with self.__board_lock:
-            for name in self.__boards:
-                list_of_boards.append(name)
+        # Initialize return_value variable
+        return_value = None
 
-        # Check for empty list to return a different message
-        if len(list_of_boards) == 0:
-            return_value = (True, list_of_boards, "[ERROR] No Boards found! Please create one first!")
-        else:
-            return_value = (True, list_of_boards, "[INFO] Successful read of Board list!")
+        with lock_timeout(self.__board_lock, 10) as acquired:
+            if acquired:
+                # Get all Blackboard names
+                for name in self.__boards:
+                    list_of_boards.append(name)
+            else:
+                # Timeout
+                return_value = (False,
+                                "[TIMEOUT] The server is too busy. Could not list existing boards. Try again later.")
+
+        if return_value is None:
+            # Check for empty list to return a different message
+            if len(list_of_boards) == 0:
+                return_value = (True, list_of_boards, "[WARNING] No Boards found! Please create one first!")
+            else:
+                return_value = (True, list_of_boards, "[INFO] Successful read of Board list!")
 
         # Log and return
         self.log_call("exposed_list_blackboards", (), return_value)
@@ -264,23 +279,24 @@ class BlackBoardHost(rpyc.Service):
 
         param - {str} - name - Unique name of the Blackboard
 
-        return (Successful?,  Message)
+        return (successful?, message)
         """
         # To be sure the string parameters are a string
         name = str(name)
 
-        return_value = None
-
-        # Check if the Blackboard exists
-        if name not in self.__boards:
-            return_value = (False, "[ERROR] Board does not exist!")
-
-        if return_value is None:
-            # Delete Board
-            with self.__board_lock:
-                del self.__boards[name]
-                self.__save_boards()
-            return_value = (True, "[INFO] Board successfully deleted!")
+        with lock_timeout(self.__board_lock, 10) as acquired:
+            if acquired:
+                if name not in self.__boards:
+                    # Delete Blackboard
+                    del self.__boards[name]
+                    self.__save_boards()
+                    return_value = (True, "[INFO] Board successfully deleted!")
+                else:
+                    # Blackboard does not exist
+                    return_value = (False, "[ERROR] Board does not exist!")
+            else:
+                # Timeout
+                return_value = (False, "[TIMEOUT] The server is too busy. Board not deleted. Try again later.")
 
         # Log and return
         self.log_call("exposed_delete_blackboard", (name,), return_value)
@@ -292,12 +308,17 @@ class BlackBoardHost(rpyc.Service):
 
         param - {str} - name - Unique name of the Blackboard
 
-        return (Successful?,  Message)
+        return (successful?,  message)
         """
-        with self.__board_lock:
-            self.__boards.clear()
-            self.__save_boards()
-        return_value = (True, "[INFO] Successfully deleted all Boards!")
+        with lock_timeout(self.__board_lock, 10) as acquired:
+            if acquired:
+                # Delete all Blackboards
+                self.__boards.clear()
+                self.__save_boards()
+                return_value = (True, "[INFO] Successfully deleted all Boards!")
+            else:
+                # Timeout
+                return_value = (False, "[TIMEOUT] The server is too busy. Boards not deleted. Try again later.")
 
         # Log and return
         self.log_call("exposed_delete_all_blackboards", (), return_value)

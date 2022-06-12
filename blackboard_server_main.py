@@ -94,7 +94,6 @@ class BlackBoardHost(rpyc.Service):
                             "entry_time": time.time(),
                             "data": None
                         }
-                        time.sleep(20)
                         # Add to __boards
                         self.__boards[name] = new_blackboard
                         self.__save_boards()
@@ -286,7 +285,7 @@ class BlackBoardHost(rpyc.Service):
 
         with lock_timeout(self.__board_lock, 10) as acquired:
             if acquired:
-                if name not in self.__boards:
+                if name in self.__boards:
                     # Delete Blackboard
                     del self.__boards[name]
                     self.__save_boards()

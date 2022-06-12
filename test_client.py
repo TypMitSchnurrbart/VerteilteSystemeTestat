@@ -130,7 +130,7 @@ def main(argv: list) -> None:
             print("\n====================================================\n")
 
             # Check if finished
-            if action_id == "Q" or action_id == "q":
+            if action_id in ("Q", "q"):
                 running = False
                 break
 
@@ -210,7 +210,7 @@ def main(argv: list) -> None:
                 board_name = get_input_name()
                 security_question = input(f"Are you sure you want to delete '{board_name}'?\n[Y / N] : ")
                 # Check Security Question
-                if security_question == "Y":
+                if security_question in ("Y", "y"):
                     answer = server_handle.delete_blackboard(board_name)
                     print(
                         "\n"
@@ -226,7 +226,7 @@ def main(argv: list) -> None:
             elif action_id == "7":
                 security_question = input("Are you sure you want to delete ALL Blackboards?\n[Y / N] : ")
                 # Check Security Question
-                if security_question == "Y":
+                if security_question in ("Y", "y"):
                     answer = server_handle.delete_all_blackboards()
                     print(
                         "\n"
@@ -248,12 +248,18 @@ def main(argv: list) -> None:
             print("\n====================================================\n")
 
     except Exception as e:
-        if isinstance(e, EOFError) and e.args[0].args[0] == 10054:
+        if isinstance(e, EOFError):
             print("[ERROR] Server closed the connection! Please restart the server. Closing the application.")
+            exit()
+        if isinstance(e, TimeoutError):
+            print("[ERROR] Timeout! Closing the application.")
             exit()
         else:
             print("[ERROR] An unknown error occurred. Closing the application.")
             exit()
+    except KeyboardInterrupt:
+        # Print separator
+        print("\n\n====================================================\n")
     print("[INFO] Closing connection...")
 
 

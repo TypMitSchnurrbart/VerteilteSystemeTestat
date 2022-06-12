@@ -305,8 +305,6 @@ class BlackBoardHost(rpyc.Service):
         """
         Delete all existing Blackboards.
 
-        param - {str} - name - Unique name of the Blackboard
-
         return (successful?,  message)
         """
         with lock_timeout(self.__board_lock, 10) as acquired:

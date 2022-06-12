@@ -96,7 +96,7 @@ class ServerTest(unittest.TestCase):
         result = self.host.exposed_read_blackboard("EmptyBlackboard")
         self.assertTrue(result[0])
         #Data
-        self.assertEqual("", result[1])
+        self.assertEqual(None, result[1])
         #Validity -> Empty Blackboards are considered to be invalid
         self.assertFalse(result[2])
         #Message
@@ -147,7 +147,7 @@ class ServerTest(unittest.TestCase):
         result = self.host.exposed_list_blackboards()
 
         self.assertTrue(result[0])
-        self.assertEqual("[ERROR] No Boards found! Please create one first!", result[2])
+        self.assertEqual("[WARNING] No Boards found! Please create one first!", result[2])
 
         self.host.exposed_create_blackboard("TestBoard", 1000)
         self.host.exposed_create_blackboard("AnotherTestBoard", 1000)

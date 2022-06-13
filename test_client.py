@@ -43,7 +43,7 @@ def main(argv: list) -> None:
 
     param - {str} - argv - A list of the arguments
     """
-    server_handle = None
+    connection = None
 
     try:
         # parse arguments
@@ -86,7 +86,7 @@ def main(argv: list) -> None:
 
         # Connect to the server
         print("[INFO] Connecting to Server...")
-        server_handle = rpyc.connect(ip, port).root
+        connection = rpyc.connect(ip, port).root
 
         # Start message
         print("Welcome to the Blackboard client! What do you want to do?")
@@ -131,7 +131,7 @@ def main(argv: list) -> None:
 
             # Create a Blackboard
             if action_id == "0":
-                answer = server_handle.create_blackboard(get_input_name(), input("Insert the valid time in seconds:\t"))
+                answer = connection.create_blackboard(get_input_name(), input("Insert the valid time in seconds:\t"))
                 print(
                     "\n"
                     f"Message:\t{answer[-1]}"
@@ -139,7 +139,7 @@ def main(argv: list) -> None:
 
             # Write to the Blackboard
             elif action_id == "1":
-                answer = server_handle.display_blackboard(get_input_name(), input("Please insert the data:\t"))
+                answer = connection.display_blackboard(get_input_name(), input("Please insert the data:\t"))
                 print(
                     "\n"
                     f"Message:\t{answer[-1]}"
@@ -147,7 +147,7 @@ def main(argv: list) -> None:
 
             # Clear the Blackboard
             elif action_id == "2":
-                answer = server_handle.clear_blackboard(get_input_name())
+                answer = connection.clear_blackboard(get_input_name())
                 print(
                     "\n"
                     f"Message:\t{answer[-1]}"
@@ -155,7 +155,7 @@ def main(argv: list) -> None:
 
             # Read form the Blackboard
             elif action_id == "3":
-                answer = server_handle.read_blackboard(get_input_name())
+                answer = connection.read_blackboard(get_input_name())
                 # Check if request was successful
                 if answer[0]:
                     if answer[1] is None:
@@ -177,7 +177,7 @@ def main(argv: list) -> None:
 
             # Get Blackboard Status
             elif action_id == "4":
-                answer = server_handle.get_blackboard_status(get_input_name())
+                answer = connection.get_blackboard_status(get_input_name())
                 # Check if request was successful
                 if answer[0]:
                     print(
@@ -196,7 +196,7 @@ def main(argv: list) -> None:
 
             # List all Blackboards
             elif action_id == "5":
-                answer = server_handle.list_blackboards()
+                answer = connection.list_blackboards()
                 # Check if request was successful
                 if answer[0]:
                     blackboard_list = ", ".join(answer[1])
@@ -217,7 +217,7 @@ def main(argv: list) -> None:
                 security_question = input(f"Are you sure you want to delete '{board_name}'?\n[Y / N] : ")
                 # Check Security Question
                 if security_question in ("Y", "y"):
-                    answer = server_handle.delete_blackboard(board_name)
+                    answer = connection.delete_blackboard(board_name)
                     print(
                         "\n"
                         f"Message:\t{answer[-1]}"
@@ -233,7 +233,7 @@ def main(argv: list) -> None:
                 security_question = input("Are you sure you want to delete ALL Blackboards?\n[Y / N] : ")
                 # Check Security Question
                 if security_question in ("Y", "y"):
-                    answer = server_handle.delete_all_blackboards()
+                    answer = connection.delete_all_blackboards()
                     print(
                         "\n"
                         f"Message:\t{answer[-1]}"

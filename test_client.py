@@ -257,8 +257,12 @@ def main(argv: list) -> None:
         if isinstance(e, EOFError):
             print("[ERROR] Server closed the connection! Please restart the server. Closing the application.")
             exit()
-        if isinstance(e, TimeoutError):
+        elif isinstance(e, TimeoutError):
             print("[ERROR] Timeout! Closing the application.")
+            exit()
+        elif isinstance(e, AttributeError):
+            print("[ERROR] The Server does not implement the blackboard functions. Please ensure the server address "
+                  "is correct.")
             exit()
         else:
             print("[ERROR] An unknown error occurred. Closing the application.")

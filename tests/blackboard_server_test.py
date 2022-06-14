@@ -1,5 +1,5 @@
 import unittest
-from blackboard_server_main import BlackBoardHost
+from blackboard_server import BlackBoardHost
 import time
 
 class ServerTest(unittest.TestCase):

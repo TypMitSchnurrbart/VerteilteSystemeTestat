@@ -1,6 +1,6 @@
 import unittest
 import os
-import logger as logger
+import src.logger as logger
 
 class LoggerTest(unittest.TestCase):
     
@@ -31,6 +31,10 @@ class LoggerTest(unittest.TestCase):
         self.assertTrue(fileSize1 < fileSize2)
 
 if __name__=="__main__":
+
+
+
+
     unittest.main()
 
         

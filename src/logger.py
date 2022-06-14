@@ -9,7 +9,7 @@ import os
 import csv
 from threading import Lock
 
-from lock_timeout import lock_timeout
+from src.lock_timeout import lock_timeout
 
 
 # =====Logger=========================================

@@ -1,20 +1,38 @@
 import unittest
 from blackboard_server import BlackBoardHost
 import time
+import os
+
 
 class ServerTest(unittest.TestCase):
+    filename = 'log.csv'
+    backup_filename = 'log_backup.csv'
+    backup_exists = False
+
+    @classmethod
+    def setUpClass(cls):
+        # Remove random backup file
+        if os.path.isfile(cls.backup_filename):
+            os.remove(cls.backup_filename)
+
+        # Save Log
+        cls.backup_exists = os.path.isfile(cls.filename)
+        if cls.backup_exists:
+            os.rename(cls.filename, cls.backup_filename)
+
+    @classmethod
+    def tearDownClass(cls):
+        # Restore Log
+        os.remove(cls.filename)
+        if cls.backup_exists:
+            os.rename(cls.backup_filename, cls.filename)
 
     def setUp(self):
-
         self.host = BlackBoardHost()
-        self.host._BlackBoardHost__client_address = ('123.123.123.123',52321)
-    
+        self.host._BlackBoardHost__client_address = ('123.123.123.123', 52321)
+
     def tearDown(self):
-
         self.host.exposed_delete_all_blackboards()
-        #self.assertEqual({}, BlackBoardHost.__BlackBoardHost__boards)
-        #self.assertEqual(BlackBoardHost.__boards, {})
-
 
     def test_on_connect(self):
         pass
@@ -23,8 +41,7 @@ class ServerTest(unittest.TestCase):
         pass
 
     def test_exposed_create_blackboard(self):
-
-        #Valid Testcase
+        # Valid Testcase
         result = self.host.exposed_create_blackboard("TestBlackboard", 1000)
         self.assertTrue(result[0])
         self.assertEqual("[INFO] Successfully created Board 'TestBlackboard'!", result[1])
@@ -34,23 +51,23 @@ class ServerTest(unittest.TestCase):
         self.assertFalse(result[0])
         self.assertEqual("[ERROR] Board name 'TestBlackboard' already exists!", result[1])
 
-        # no valid time
+        # No valid time
         result = self.host.exposed_create_blackboard(123, "Hallo")
         self.assertFalse(result[0])
-        self.assertEqual("[ERROR] Invalid parameters! Please give valid time in seconds as Float or Int!",result[1])
+        self.assertEqual("[ERROR] Invalid parameters! Please give valid time in seconds as Float or Int!", result[1])
 
-        # negative Time
+        # Negative Time
         result = self.host.exposed_create_blackboard("Hallo", -500)
         self.assertFalse(result[0])
-        self.assertEqual("[ERROR] The valid time must be greater or equal to 0! Given value: -500.0.",result[1])
-    
+        self.assertEqual("[ERROR] The valid time must be greater or equal to 0! Given value: -500.0.", result[1])
+
     def test_exposed_display_blackboard(self):
         self.host.exposed_create_blackboard("TestBoard", 1000)
 
         # Existing Blackboard
         result = self.host.exposed_display_blackboard("TestBoard", "DataString")
         self.assertTrue(result[0])
-        self.assertEqual("[INFO] Board successfully updated!",result[1])
+        self.assertEqual("[INFO] Board successfully updated!", result[1])
 
         # Not existing Blackboard
         result = self.host.exposed_display_blackboard("NotExistingBlackboard", "DataString")
@@ -58,15 +75,13 @@ class ServerTest(unittest.TestCase):
         self.assertEqual("[ERROR] Board does not exist!", result[1])
 
     def test_exposed_clear_blackboard(self):
-
         self.host.exposed_create_blackboard("TestBoard", 1000)
         self.host.exposed_display_blackboard("TestBoard", "DataString")
-
 
         # Existing Blackboard
         result = self.host.exposed_clear_blackboard("TestBoard")
         self.assertTrue(result[0])
-        self.assertEqual("[INFO] Board successfully cleared!",result[1])
+        self.assertEqual("[INFO] Board successfully cleared!", result[1])
 
         # Not existing Blackboard
         result = self.host.exposed_clear_blackboard("NotExistingBlackboard")
@@ -74,7 +89,6 @@ class ServerTest(unittest.TestCase):
         self.assertEqual("[ERROR] Board does not exist!", result[1])
 
     def test_exposed_read_blackboard(self):
-
         self.host.exposed_create_blackboard("TestBoard", 1000)
         self.host.exposed_display_blackboard("TestBoard", "DataString")
 
@@ -86,29 +100,29 @@ class ServerTest(unittest.TestCase):
 
         result = self.host.exposed_read_blackboard("TestBoard")
         self.assertTrue(result[0])
-        #Data
+        # Data
         self.assertEqual("DataString", result[1])
-        #Validity
+        # Validity
         self.assertTrue(result[2])
-        #Message
+        # Message
         self.assertEqual("[INFO] Successfully read with valid data!", result[3])
 
         result = self.host.exposed_read_blackboard("EmptyBlackboard")
         self.assertTrue(result[0])
-        #Data
+        # Data
         self.assertEqual(None, result[1])
-        #Validity -> Empty Blackboards are considered to be invalid
+        # Validity -> Empty Blackboards are considered to be invalid
         self.assertFalse(result[2])
-        #Message
+        # Message
         self.assertEqual("[WARNING] Successfully read but data is empty!", result[3])
 
         result = self.host.exposed_read_blackboard("InvalidBlackboard")
         self.assertTrue(result[0])
-        #Data
+        # Data
         self.assertEqual("SomeData", result[1])
-        #Validity
+        # Validity
         self.assertFalse(result[2])
-        #Message
+        # Message
         self.assertEqual("[WARNING] Successfully read but data is invalid!", result[3])
 
         result = self.host.exposed_read_blackboard("NotExistingBlackboard")
@@ -116,24 +130,22 @@ class ServerTest(unittest.TestCase):
         self.assertEqual("[ERROR] Board does not exist!", result[1])
 
     def test_exposed_get_blackboard_status(self):
-
         self.host.exposed_create_blackboard("TestBoard", 1000)
         self.host.exposed_display_blackboard("TestBoard", "DataString")
         self.host.exposed_create_blackboard("Empty", 0.001)
 
         time.sleep(0.1)
         result = self.host.exposed_get_blackboard_status("Empty")
-        # emptyness
+        # Emptiness
         self.assertTrue(result[1])
-        # invalidity
-        self.assertFalse(result[3])    
-        
+        # Invalidity
+        self.assertFalse(result[3])
 
         result = self.host.exposed_get_blackboard_status("TestBoard")
         self.assertTrue(result[0])
-        #Emptyness
+        # Emptiness
         self.assertFalse(result[1])
-        #Validity
+        # Validity
         self.assertTrue(result[3])
         self.assertEqual("[INFO] Successfully read Board status!", result[4])
 
@@ -142,7 +154,6 @@ class ServerTest(unittest.TestCase):
         self.assertEqual("[ERROR] Board does not exist!", result[1])
 
     def test_exposed_list_blackboards(self):
-        
         self.host.exposed_delete_all_blackboards()
         result = self.host.exposed_list_blackboards()
 
@@ -157,7 +168,6 @@ class ServerTest(unittest.TestCase):
         self.assertEqual("[INFO] Successful read of Board list!", result[2])
 
     def test_exposed_delete_blackboard(self):
-
         self.host.exposed_create_blackboard("TestBoard", 1000)
         self.host.exposed_display_blackboard("TestBoard", "DataString")
 
@@ -165,33 +175,30 @@ class ServerTest(unittest.TestCase):
         self.assertTrue(result[0])
         self.assertEqual("[INFO] Board successfully deleted!", result[1])
 
-        #Not sure wheter its a good practice to check additionally
+        # Not sure whether it's a good practice to check additionally
         result = self.host.exposed_get_blackboard_status("TestBoard")
         self.assertFalse(result[0])
         self.assertEqual("[ERROR] Board does not exist!", result[1])
-
 
         result = self.host.exposed_delete_blackboard("NotExistingBlackboard")
         self.assertFalse(result[0])
         self.assertEqual("[ERROR] Board does not exist!", result[1])
 
     def test_exposed_delete_all_blackboards(self):
-    
         self.host.exposed_create_blackboard("TestBoard", 1000)
         self.host.exposed_display_blackboard("TestBoard", "DataString")
 
         self.host.exposed_create_blackboard("AnotherTestBoard", 1000)
-        
+
         result = self.host.exposed_delete_all_blackboards()
         self.assertTrue(result[0])
 
         self.assertEqual("[INFO] Successfully deleted all Boards!", result[1])
 
-        #additional check
+        # Additional check
         result = self.host.exposed_get_blackboard_status("TestBoard")
         self.assertFalse(result[0])
         self.assertEqual("[ERROR] Board does not exist!", result[1])
-
 
     def test_log_call(self):
         pass
@@ -203,5 +210,5 @@ class ServerTest(unittest.TestCase):
         pass
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     unittest.main()

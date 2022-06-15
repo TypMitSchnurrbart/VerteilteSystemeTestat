@@ -434,7 +434,7 @@ def main(argv: list) -> None:
                 print("[ERROR] Port number out of range.")
                 exit()
 
-    # Start the server
+    # Initialize the server
     print("[INFO] Starting server on port " + str(port) + "...")
     server = None
     try:

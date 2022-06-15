@@ -89,7 +89,6 @@ class BlackBoardHost(rpyc.Service):
                     else:
                         # Create new Blackboard
                         new_blackboard = {
-                            "name": name,
                             "valid_sec": valid_sec,
                             "entry_time": time.time(),
                             "data": None

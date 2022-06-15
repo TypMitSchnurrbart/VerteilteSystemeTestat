@@ -89,7 +89,6 @@ class BlackBoardHost(rpyc.Service):
                     else:
                         # Create new Blackboard
                         new_blackboard = {
-                            "name": name,
                             "valid_sec": valid_sec,
                             "entry_time": time.time(),
                             "data": None
@@ -435,7 +434,7 @@ def main(argv: list) -> None:
                 print("[ERROR] Port number out of range.")
                 exit()
 
-    # Start the server
+    # Initialize the server
     print("[INFO] Starting server on port " + str(port) + "...")
     server = None
     try:

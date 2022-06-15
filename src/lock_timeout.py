@@ -19,6 +19,8 @@ def lock_timeout(lock: Lock, timeout: float):
     param - {float} - timeout - The maximum time for acquiring the lock
     """
     result = lock.acquire(timeout=timeout)
-    yield result
-    if result:
-        lock.release()
+    try:
+        yield result
+    finally:
+        if result:
+            lock.release()
